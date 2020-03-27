@@ -18,7 +18,8 @@
 
 #pragma once
 #include "Jpegfile.h"
-
+#define _USE_MATH_DEFINES
+#include <cmath>
 
 // CMFCApplication1View
 
@@ -52,7 +53,7 @@ BITMAPFILEHEADER bmpHeader;// -> BMP 파일 헤더
 float** hueBuffer; //이미지 색조 정보
 float** satuBuffer; //이미지 채도 정보
 float** intenBuffer; //이미지 밝기 정보
-int viewType;
+int viewType = 0;
 
 CMFCApplication1View::CMFCApplication1View()
 {
@@ -322,10 +323,10 @@ void CMFCApplication1View::OnRgbtohsiChange()
 				hueBuffer[i][j] = 0;satuBuffer[i][j] = 0;
 			}
 			else {
-				total = (0.5*(r - g + r - b) / sqrt(r - g)*(r - g) + (r - b)*(g - b));
+				total = (0.5*(r - g + r - b) / sqrt((r - g)*(r - g) + (r - b)*(g - b)));
 				hueBuffer[i][j] = acos((double)total);
 				if (b > g) {
-					hueBuffer[i][j] = 6.28 - hueBuffer[i][j];
+					hueBuffer[i][j] = 2*M_PI - hueBuffer[i][j];
 				}
 			}
 		}
@@ -347,12 +348,13 @@ void CMFCApplication1View::OnRgbtohsiChange()
 
 void CMFCApplication1View::OnPointprocessingContraststretching()
 {
-	//1. 원래 이미지를 HSI 컬러스페이스로 변환: RGB
-	satuBuffer = new float*[imgHeight];toHSI 함수 출력 제외 부분
+	//1. 원래 이미지를 HSI 컬러스페이스로 변환: RGBtoHSI 함수 출력 제외 부분
+	
 
 	if (rgbBuffer == NULL)
 		OnImageBmp();
 
+	satuBuffer = new float*[imgHeight];
 	hueBuffer = new float*[imgHeight];
 	intenBuffer = new float*[imgHeight];
 
@@ -368,27 +370,21 @@ void CMFCApplication1View::OnPointprocessingContraststretching()
 			float g = rgbBuffer[i][j].rgbGreen;
 			float b = rgbBuffer[i][j].rgbBlue;
 			//대비개선: intensity level * 1.5
-			intenBuffer[i][j] = min(1,((r + g + b) / (float)(3 * 255))*1.5);
+			intenBuffer[i][j] = max(0,min(1,((r + g + b) / (float)(3 * 255))*1.5));
 			float total = r + g + b;
 			r = r / total; g = g / total; b = b / total;
 			satuBuffer[i][j] = 1 - 3 * (r > g ? (g > b ? b : g) : (r > b ? b : r));
+			
 			if (r == g&&g == b) {
 				hueBuffer[i][j] = 0;satuBuffer[i][j] = 0;
 			}
 			else {
-				total = (0.5*(r - g + r - b) / sqrt(r - g)*(r - g) + (r - b)*(g - b));
+				total = (0.5*(r - g + r - b) / sqrt((r - g)*(r - g) + (r - b)*(g - b)));
 				hueBuffer[i][j] = acos((double)total);
 				if (b > g) {
-					hueBuffer[i][j] = 6.28 - hueBuffer[i][j];
+					hueBuffer[i][j] = 2*M_PI - hueBuffer[i][j];
 				}
 			}
-		}
-	}
-	for (int i = 0;i < imgHeight;i++) {
-		for (int j = 0;j < imgWidth;j++) {
-			hueBuffer[i][j] = hueBuffer[i][j] * 255 / (3.14 * 2);
-			satuBuffer[i][j] = satuBuffer[i][j] * 255;
-			intenBuffer[i][j] = intenBuffer[i][j] * 255;
 		}
 	}
 
@@ -416,22 +412,40 @@ void CMFCApplication1View::OnPointprocessingContraststretching()
 			float S = satuBuffer[i][j];
 			float H = hueBuffer[i][j];
 			float I = intenBuffer[i][j];
-			
-			if (H <= 120) {
-				B = (float)(1 - S) / 3;
-				R = (float)(1 + S*cos(H) / cos(60 - H)) / 3;
-				G = (float)1 - (R + B);
+			if (S == 0) {
+				R = 1 / 3;
+				G = 1 / 3;
+				B = 1 / 3;
 			}
-			else if (H <= 240) {
-				H = H - 120;
-				G = (1 + S*cos(H) / cos(60 - H)) / 3;
-				R = (1 - S) / 3;
-				B = 1 - (R + G);
+			else if (I == 0) {
+				R = 0;
+				G = 0;
+				B = 0;
+			}
+			else {
+			
+				if (H < 2*M_PI/3) {
+					B = (1 - S) / 3;
+					R = (1 + (S*cos((double)H) / cos((double)M_PI/3 - H))) / 3;
+					G = 1 - (R + B);
+				}
+				else if (H < 4*M_PI/3) {
+					H = H - 2*M_PI/3;
+					R = (1 - S) / 3;
+					G = (1 + (S*cos((double)H) / cos((double)M_PI/3 - H))) / 3;
+					B = 1 - (R + G);
+				}
+				else {
+					H = H - 4*M_PI/3;
+					G = (1 - S) / 3;
+					B = (1 + (S*cos((double)H) / cos((double)M_PI/3 - H))) / 3;
+					R = 1 - (G + B);
+				}
 			}
 			//정규화
-			R = R * 255;
-			G = G * 255;
-			B = B * 255;
+			R = R * 255 * 3 * I;
+			G = G * 255 * 3 * I;
+			B = B * 255 * 3 * I;
 
 			//원본 이미지 데이터를 보존하기 위해 새로운 변수에 저장
 			rgb_red[i][j] = R;
