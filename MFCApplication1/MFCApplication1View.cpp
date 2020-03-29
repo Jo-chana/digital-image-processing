@@ -34,6 +34,7 @@ BEGIN_MESSAGE_MAP(CMFCApplication1View, CView)
 	ON_COMMAND(ID_IMAGE_JEPG, &CMFCApplication1View::OnImageJepg)
 	ON_COMMAND(ID_RGBTOHSI_CHANGE, &CMFCApplication1View::OnRgbtohsiChange)
 	ON_COMMAND(ID_POINTPROCESSING_CONTRASTSTRETCHING, &CMFCApplication1View::OnPointprocessingContraststretching)
+	ON_COMMAND(ID_POINTPROCESSING_SATURATIONINJECTING, &CMFCApplication1View::OnPointprocessingSaturationinjecting)
 END_MESSAGE_MAP()
 
 
@@ -414,7 +415,7 @@ void CMFCApplication1View::OnPointprocessingContraststretching()
 			float S = satuBuffer[i][j];
 			float H = hueBuffer[i][j];
 			float I = intenBuffer[i][j];
-			float total = rgbBuffer[i][j].rgbRed + rgbBuffer[i][j].rgbGreen + rgbBuffer[i][j].rgbBlue;
+
 		    if (I == 0) {
 				r = 0;
 				g = 0;
@@ -452,6 +453,114 @@ void CMFCApplication1View::OnPointprocessingContraststretching()
 			R = min(255,255*3 * r * I);
 			G = min(255,255*3 * g * I);
 			B = min(255,255*3 * b * I);
+
+			//원본 이미지 데이터를 보존하기 위해 새로운 변수에 저장
+			rgb_red[i][j] = R;
+			rgb_green[i][j] = G;
+			rgb_blue[i][j] = B;
+		}
+	}
+	//4. 출력
+	viewType = 3;
+	Invalidate(FALSE);
+}
+
+
+void CMFCApplication1View::OnPointprocessingSaturationinjecting()
+{
+	if (rgbBuffer == NULL)
+		OnImageBmp();
+
+	satuBuffer = new float*[imgHeight];
+	hueBuffer = new float*[imgHeight];
+	intenBuffer = new float*[imgHeight];
+
+	for (int i = 0;i < imgHeight;i++) {
+		hueBuffer[i] = new float[imgWidth];
+		satuBuffer[i] = new float[imgWidth];
+		intenBuffer[i] = new float[imgWidth];
+	}
+
+	for (int i = 0;i < imgHeight;i++) {
+		for (int j = 0;j < imgWidth;j++) {
+			float r = rgbBuffer[i][j].rgbRed;
+			float g = rgbBuffer[i][j].rgbGreen;
+			float b = rgbBuffer[i][j].rgbBlue;
+			intenBuffer[i][j] = (r + g + b) / (float)(3 * 255);
+			float total = r + g + b;
+			r = r / total; g = g / total; b = b / total;
+			satuBuffer[i][j] = 1 - 3 * (r > g ? (g > b ? b : g) : (r > b ? b : r));
+
+			if (r == g&&g == b) {
+				hueBuffer[i][j] = 0;satuBuffer[i][j] = 0;
+			}
+			else {
+				total = (0.5*(r - g + r - b) / sqrt((r - g)*(r - g) + (r - b)*(g - b)));
+				hueBuffer[i][j] = acos((double)total);
+				if (b > g) {
+					hueBuffer[i][j] = 2 * M_PI - hueBuffer[i][j];
+				}
+			}
+		}
+	}
+	rgb_red = new float*[imgHeight];
+	rgb_green = new float*[imgHeight];
+	rgb_blue = new float*[imgHeight];
+	for (int i = 0;i < imgHeight;i++) {
+		rgb_red[i] = new float[imgWidth];
+		rgb_green[i] = new float[imgWidth];
+		rgb_blue[i] = new float[imgWidth];
+	}
+
+	for (int i = 0;i < imgHeight;i++) {
+		for (int j = 0;j < imgWidth;j++) {
+			float R = 0;
+			float G = 0;
+			float B = 0;
+			float r = 0;
+			float g = 0;
+			float b = 0;
+			float S = 1; // saturation 최대
+			float H = hueBuffer[i][j];
+			float I = intenBuffer[i][j];
+
+			if (I == 0) {
+				r = 0;
+				g = 0;
+				b = 0;
+			}
+			else if (S == 0) {
+				r = 1 / 3;
+				g = 1 / 3;
+				b = 1 / 3;
+			}
+			else {
+
+				if (H < 2 * M_PI / 3) { // 0 <= H < 2/3Pi
+					b = (1 - S) / 3;
+					r = (1 + (S*cos((double)H) / cos((double)M_PI / 3 - H))) / 3;
+					g = 1 - (r + b);
+
+				}
+				else if (H < 4 * M_PI / 3) { // 2/3Pi <= H < 4/3Pi
+					H = H - 2 * M_PI / 3;
+					r = (1 - S) / 3;
+					g = (1 + (S*cos((double)H) / cos((double)M_PI / 3 - H))) / 3;
+					b = 1 - (r + g);
+
+				}
+				else { // 4/3Pi <= H =< 2Pi
+					H = H - 4 * M_PI / 3;
+					g = (1 - S) / 3;
+					b = (1 + (S*cos((double)H) / cos((double)M_PI / 3 - H))) / 3;
+					r = 1 - (g + b);
+
+				}
+			}
+
+			R = 255 * 3 * r * I;
+			G = 255 * 3 * g * I;
+			B = 255 * 3 * b * I;
 
 			//원본 이미지 데이터를 보존하기 위해 새로운 변수에 저장
 			rgb_red[i][j] = R;
