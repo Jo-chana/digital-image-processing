@@ -225,6 +225,7 @@ void CMFCApplication1View::OnImageBmp()
 		}
 	}
 	file.Close(); //파일 닫기
+	viewType = 0;
 	Invalidate(TRUE); // 화면 갱신
 
 }
@@ -520,7 +521,7 @@ void CMFCApplication1View::OnPointprocessingSaturationinjecting()
 			float r = 0;
 			float g = 0;
 			float b = 0;
-			float S = 1; // saturation 최대
+			float S = 1;//min(1, satuBuffer[i][j] * 2); // saturation 개선
 			float H = hueBuffer[i][j];
 			float I = intenBuffer[i][j];
 
@@ -558,9 +559,9 @@ void CMFCApplication1View::OnPointprocessingSaturationinjecting()
 				}
 			}
 
-			R = 255 * 3 * r * I;
-			G = 255 * 3 * g * I;
-			B = 255 * 3 * b * I;
+			R = min(255,255 * 3 * r * I);
+			G = min(255,255 * 3 * g * I);
+			B = min(255,255 * 3 * b * I);
 
 			//원본 이미지 데이터를 보존하기 위해 새로운 변수에 저장
 			rgb_red[i][j] = R;
