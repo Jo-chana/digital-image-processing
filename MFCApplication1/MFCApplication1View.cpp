@@ -397,7 +397,6 @@ void CMFCApplication1View::OnPointprocessingContraststretching()
 	rgb_red = new float*[imgHeight];
 	rgb_green = new float*[imgHeight];
 	rgb_blue = new float*[imgHeight];
-
 	for (int i = 0;i < imgHeight;i++) {
 		rgb_red[i] = new float[imgWidth];
 		rgb_green[i] = new float[imgWidth];
@@ -406,46 +405,53 @@ void CMFCApplication1View::OnPointprocessingContraststretching()
 
 	for (int i = 0;i < imgHeight;i++) {
 		for (int j = 0;j < imgWidth;j++) {
-			float R = rgbBuffer[i][j].rgbRed; 
-			float G = rgbBuffer[i][j].rgbGreen;
-			float B = rgbBuffer[i][j].rgbBlue;
+			float R = 0; 
+			float G = 0;
+			float B = 0;
+			float r = 0;
+			float g = 0;
+			float b = 0;
 			float S = satuBuffer[i][j];
 			float H = hueBuffer[i][j];
 			float I = intenBuffer[i][j];
-			if (S == 0) {
-				R = 1 / 3;
-				G = 1 / 3;
-				B = 1 / 3;
+			float total = rgbBuffer[i][j].rgbRed + rgbBuffer[i][j].rgbGreen + rgbBuffer[i][j].rgbBlue;
+		    if (I == 0) {
+				r = 0;
+				g = 0;
+				b = 0;
 			}
-			else if (I == 0) {
-				R = 0;
-				G = 0;
-				B = 0;
+			else if (S == 0) {
+				r = 1 / 3;
+				g = 1 / 3;
+				b = 1 / 3;
 			}
 			else {
 			
-				if (H < 2*M_PI/3) {
-					B = (1 - S) / 3;
-					R = (1 + (S*cos((double)H) / cos((double)M_PI/3 - H))) / 3;
-					G = 1 - (R + B);
+				if (H < 2*M_PI/3) { // 0 <= H < 2/3Pi
+					b = (1 - S) / 3;
+					r = (1 + (S*cos((double)H) / cos((double)M_PI/3 - H))) / 3;
+					g = 1 - (r + b);
+				
 				}
-				else if (H < 4*M_PI/3) {
+				else if (H < 4*M_PI/3) { // 2/3Pi <= H < 4/3Pi
 					H = H - 2*M_PI/3;
-					R = (1 - S) / 3;
-					G = (1 + (S*cos((double)H) / cos((double)M_PI/3 - H))) / 3;
-					B = 1 - (R + G);
+					r = (1 - S) / 3;
+					g = (1 + (S*cos((double)H) / cos((double)M_PI/3 - H))) / 3;
+					b = 1 - (r + g);
+					
 				}
-				else {
+				else { // 4/3Pi <= H =< 2Pi
 					H = H - 4*M_PI/3;
-					G = (1 - S) / 3;
-					B = (1 + (S*cos((double)H) / cos((double)M_PI/3 - H))) / 3;
-					R = 1 - (G + B);
+					g = (1 - S) / 3;
+					b = (1 + (S*cos((double)H) / cos((double)M_PI/3 - H))) / 3;
+					r = 1 - (g + b);
+					
 				}
 			}
-			//정규화
-			R = R * 255 * 3 * I;
-			G = G * 255 * 3 * I;
-			B = B * 255 * 3 * I;
+
+			R = min(255,255*3 * r * I);
+			G = min(255,255*3 * g * I);
+			B = min(255,255*3 * b * I);
 
 			//원본 이미지 데이터를 보존하기 위해 새로운 변수에 저장
 			rgb_red[i][j] = R;
