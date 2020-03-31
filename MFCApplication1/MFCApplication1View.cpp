@@ -35,15 +35,21 @@ BEGIN_MESSAGE_MAP(CMFCApplication1View, CView)
 	ON_COMMAND(ID_RGBTOHSI_CHANGE, &CMFCApplication1View::OnRgbtohsiChange)
 	ON_COMMAND(ID_POINTPROCESSING_CONTRASTSTRETCHING, &CMFCApplication1View::OnPointprocessingContraststretching)
 	ON_COMMAND(ID_POINTPROCESSING_SATURATIONINJECTING, &CMFCApplication1View::OnPointprocessingSaturationinjecting)
+	ON_COMMAND(ID_POINTPROCESSING_HISTOGRAM, &CMFCApplication1View::OnPointprocessingHistogram)
+	ON_COMMAND(ID_HISTOGRAM_COLOR, &CMFCApplication1View::OnHistogramColor)
+	ON_COMMAND(ID_HISTOGRAM_INTENSITY, &CMFCApplication1View::OnHistogramIntensity)
+	ON_COMMAND(ID_RGB2HSI_CHANGE, &CMFCApplication1View::OnRgb2hsiChange)
+	ON_COMMAND(ID_RGBTOHSI_HSI2RGB, &CMFCApplication1View::OnRgbtohsiHsi2rgb)
+	ON_COMMAND(ID_POINTPROCESSING_FACEDETECTION, &CMFCApplication1View::OnPointprocessingFacedetection)
 END_MESSAGE_MAP()
 
 
 
 // CMFCApplication1View construction/destruction
 RGBQUAD** rgbBuffer; //-> 이미지를 저장할 변수
-float** rgb_red;
-float** rgb_green;
-float** rgb_blue;
+float** rgb_red; // 변환된 이미지 R 수치
+float** rgb_green; // 변환된 이미지 G 수치
+float** rgb_blue; // 변환된 이미지 B 수치
 int imgHeight; //-> 이미지 높이 정보
 int imgWidth; //-> 이미지 너비 정보
 BITMAPINFOHEADER bmpInfo; //-> BMP 정보 헤더
@@ -54,7 +60,9 @@ BITMAPFILEHEADER bmpHeader;// -> BMP 파일 헤더
 float** hueBuffer; //이미지 색조 정보
 float** satuBuffer; //이미지 채도 정보
 float** intenBuffer; //이미지 밝기 정보
-int viewType = 0;
+int viewType = 0; // 화면 출력 유형 정보
+
+int* histogram; // 히스토그램 수치 정보
 
 CMFCApplication1View::CMFCApplication1View()
 {
@@ -290,11 +298,12 @@ void CMFCApplication1View::OnImageJepg()
 	}
 	delete[] pbuf;
 	fclose(fp);
+	viewType = 0;
 	Invalidate(TRUE);
 }
 
 
-void CMFCApplication1View::OnRgbtohsiChange()
+void CMFCApplication1View::OnRgbtohsiChange() // 함수 재사용 목적으로 작성
 {   //1. rgbBuffer 에 이미지가 들어있는 지 여부 확인
 	if (rgbBuffer == NULL)
 		OnImageBmp(); //rgbBuffer 에 데이터가 없는 경우, 로드 함수를 호출하여 이미지 획득
@@ -330,9 +339,16 @@ void CMFCApplication1View::OnRgbtohsiChange()
 				if (b > g) {
 					hueBuffer[i][j] = 2*M_PI - hueBuffer[i][j];
 				}
-			}
+			} // 함수 재사용을 위해 정규화 와 출력은 함수적으로 분리하였음.
 		}
 	}
+	
+}
+
+void CMFCApplication1View::OnRgb2hsiChange()
+{
+	OnRgbtohsiChange();
+
 	//4.출력 값 범위 정규화: 출력 시, 값의 범위를 [0,255]로 맞춤
 	for (int i = 0;i < imgHeight;i++) {
 		for (int j = 0;j < imgWidth;j++) {
@@ -345,165 +361,16 @@ void CMFCApplication1View::OnRgbtohsiChange()
 	//5.출력
 	viewType = 2;
 	Invalidate(FALSE);
+
 }
 
-
-void CMFCApplication1View::OnPointprocessingContraststretching()
+void CMFCApplication1View::OnRgbtohsiHsi2rgb() // 함수 재사용 목적으로 작성
 {
-	//1. 원래 이미지를 HSI 컬러스페이스로 변환: RGBtoHSI 함수 출력 제외 부분
-	
-
-	if (rgbBuffer == NULL)
-		OnImageBmp();
-
-	satuBuffer = new float*[imgHeight];
-	hueBuffer = new float*[imgHeight];
-	intenBuffer = new float*[imgHeight];
-
-	for (int i = 0;i < imgHeight;i++) {
-		hueBuffer[i] = new float[imgWidth];
-		satuBuffer[i] = new float[imgWidth];
-		intenBuffer[i] = new float[imgWidth];
-	}
-
-	for (int i = 0;i < imgHeight;i++) {
-		for (int j = 0;j < imgWidth;j++) {
-			float r = rgbBuffer[i][j].rgbRed;
-			float g = rgbBuffer[i][j].rgbGreen;
-			float b = rgbBuffer[i][j].rgbBlue;
-			//대비개선: intensity level * 1.5
-			intenBuffer[i][j] = max(0,min(1,((r + g + b) / (float)(3 * 255))*1.5));
-			float total = r + g + b;
-			r = r / total; g = g / total; b = b / total;
-			satuBuffer[i][j] = 1 - 3 * (r > g ? (g > b ? b : g) : (r > b ? b : r));
-			
-			if (r == g&&g == b) {
-				hueBuffer[i][j] = 0;satuBuffer[i][j] = 0;
-			}
-			else {
-				total = (0.5*(r - g + r - b) / sqrt((r - g)*(r - g) + (r - b)*(g - b)));
-				hueBuffer[i][j] = acos((double)total);
-				if (b > g) {
-					hueBuffer[i][j] = 2*M_PI - hueBuffer[i][j];
-				}
-			}
-		}
-	}
-
-
 	//3. 변환된 HSI 컬러를 RGB 컬러스페이스로 변환
 
-	
+
 	// 새로운 이미지 변수 메모리 할당
 
-	rgb_red = new float*[imgHeight];
-	rgb_green = new float*[imgHeight];
-	rgb_blue = new float*[imgHeight];
-	for (int i = 0;i < imgHeight;i++) {
-		rgb_red[i] = new float[imgWidth];
-		rgb_green[i] = new float[imgWidth];
-		rgb_blue[i] = new float[imgWidth];
-	}
-
-	for (int i = 0;i < imgHeight;i++) {
-		for (int j = 0;j < imgWidth;j++) {
-			float R = 0; 
-			float G = 0;
-			float B = 0;
-			float r = 0;
-			float g = 0;
-			float b = 0;
-			float S = satuBuffer[i][j];
-			float H = hueBuffer[i][j];
-			float I = intenBuffer[i][j];
-
-		    if (I == 0) {
-				r = 0;
-				g = 0;
-				b = 0;
-			}
-			else if (S == 0) {
-				r = 1 / 3;
-				g = 1 / 3;
-				b = 1 / 3;
-			}
-			else {
-			
-				if (H < 2*M_PI/3) { // 0 <= H < 2/3Pi
-					b = (1 - S) / 3;
-					r = (1 + (S*cos((double)H) / cos((double)M_PI/3 - H))) / 3;
-					g = 1 - (r + b);
-				
-				}
-				else if (H < 4*M_PI/3) { // 2/3Pi <= H < 4/3Pi
-					H = H - 2*M_PI/3;
-					r = (1 - S) / 3;
-					g = (1 + (S*cos((double)H) / cos((double)M_PI/3 - H))) / 3;
-					b = 1 - (r + g);
-					
-				}
-				else { // 4/3Pi <= H =< 2Pi
-					H = H - 4*M_PI/3;
-					g = (1 - S) / 3;
-					b = (1 + (S*cos((double)H) / cos((double)M_PI/3 - H))) / 3;
-					r = 1 - (g + b);
-					
-				}
-			}
-
-			R = min(255,255*3 * r * I);
-			G = min(255,255*3 * g * I);
-			B = min(255,255*3 * b * I);
-
-			//원본 이미지 데이터를 보존하기 위해 새로운 변수에 저장
-			rgb_red[i][j] = R;
-			rgb_green[i][j] = G;
-			rgb_blue[i][j] = B;
-		}
-	}
-	//4. 출력
-	viewType = 3;
-	Invalidate(FALSE);
-}
-
-
-void CMFCApplication1View::OnPointprocessingSaturationinjecting()
-{
-	if (rgbBuffer == NULL)
-		OnImageBmp();
-
-	satuBuffer = new float*[imgHeight];
-	hueBuffer = new float*[imgHeight];
-	intenBuffer = new float*[imgHeight];
-
-	for (int i = 0;i < imgHeight;i++) {
-		hueBuffer[i] = new float[imgWidth];
-		satuBuffer[i] = new float[imgWidth];
-		intenBuffer[i] = new float[imgWidth];
-	}
-
-	for (int i = 0;i < imgHeight;i++) {
-		for (int j = 0;j < imgWidth;j++) {
-			float r = rgbBuffer[i][j].rgbRed;
-			float g = rgbBuffer[i][j].rgbGreen;
-			float b = rgbBuffer[i][j].rgbBlue;
-			intenBuffer[i][j] = (r + g + b) / (float)(3 * 255);
-			float total = r + g + b;
-			r = r / total; g = g / total; b = b / total;
-			satuBuffer[i][j] = 1 - 3 * (r > g ? (g > b ? b : g) : (r > b ? b : r));
-
-			if (r == g&&g == b) {
-				hueBuffer[i][j] = 0;satuBuffer[i][j] = 0;
-			}
-			else {
-				total = (0.5*(r - g + r - b) / sqrt((r - g)*(r - g) + (r - b)*(g - b)));
-				hueBuffer[i][j] = acos((double)total);
-				if (b > g) {
-					hueBuffer[i][j] = 2 * M_PI - hueBuffer[i][j];
-				}
-			}
-		}
-	}
 	rgb_red = new float*[imgHeight];
 	rgb_green = new float*[imgHeight];
 	rgb_blue = new float*[imgHeight];
@@ -521,7 +388,7 @@ void CMFCApplication1View::OnPointprocessingSaturationinjecting()
 			float r = 0;
 			float g = 0;
 			float b = 0;
-			float S = 1;//min(1, satuBuffer[i][j] * 2); // saturation 개선
+			float S = satuBuffer[i][j];
 			float H = hueBuffer[i][j];
 			float I = intenBuffer[i][j];
 
@@ -537,20 +404,20 @@ void CMFCApplication1View::OnPointprocessingSaturationinjecting()
 			}
 			else {
 
-				if (H < 2 * M_PI / 3) { // 0 <= H < 2/3Pi
+				if (H <= 2 * M_PI / 3) { // 0 <= H <= 2/3Pi
 					b = (1 - S) / 3;
 					r = (1 + (S*cos((double)H) / cos((double)M_PI / 3 - H))) / 3;
 					g = 1 - (r + b);
 
 				}
-				else if (H < 4 * M_PI / 3) { // 2/3Pi <= H < 4/3Pi
+				else if (H <= 4 * M_PI / 3) { // 2/3Pi < H <= 4/3Pi
 					H = H - 2 * M_PI / 3;
 					r = (1 - S) / 3;
 					g = (1 + (S*cos((double)H) / cos((double)M_PI / 3 - H))) / 3;
 					b = 1 - (r + g);
 
 				}
-				else { // 4/3Pi <= H =< 2Pi
+				else { // 4/3Pi < H =< 2Pi
 					H = H - 4 * M_PI / 3;
 					g = (1 - S) / 3;
 					b = (1 + (S*cos((double)H) / cos((double)M_PI / 3 - H))) / 3;
@@ -559,9 +426,9 @@ void CMFCApplication1View::OnPointprocessingSaturationinjecting()
 				}
 			}
 
-			R = min(255,255 * 3 * r * I);
-			G = min(255,255 * 3 * g * I);
-			B = min(255,255 * 3 * b * I);
+			R = min(255, 255 * 3 * r * I);
+			G = min(255, 255 * 3 * g * I);
+			B = min(255, 255 * 3 * b * I);
 
 			//원본 이미지 데이터를 보존하기 위해 새로운 변수에 저장
 			rgb_red[i][j] = R;
@@ -569,7 +436,148 @@ void CMFCApplication1View::OnPointprocessingSaturationinjecting()
 			rgb_blue[i][j] = B;
 		}
 	}
+}
+
+void CMFCApplication1View::OnPointprocessingContraststretching()
+{
+	OnRgbtohsiChange();
+	for (int i = 0;i < imgHeight;i++) {
+		for (int j = 0; j < imgWidth;j++) {
+			intenBuffer[i][j] = min(1, intenBuffer[i][j] * 1.5); // 밝기 1.5배
+		}
+	}
+
+
+	//3. 변환된 HSI 컬러를 RGB 컬러스페이스로 변환
+	OnRgbtohsiHsi2rgb(); // 해당 함수 주석 참조
+	
+	
 	//4. 출력
 	viewType = 3;
 	Invalidate(FALSE);
+}
+
+
+void CMFCApplication1View::OnPointprocessingSaturationinjecting()
+{
+	OnRgbtohsiChange();
+	for (int i = 0;i < imgHeight;i++) {
+		for (int j = 0;j < imgWidth;j++) {
+			satuBuffer[i][j] = min(1, satuBuffer[i][j] * 2); // 채도 2배 개선
+		}
+	}
+
+	OnRgbtohsiHsi2rgb();
+	//4. 출력
+	viewType = 3;
+	Invalidate(FALSE);
+}
+
+
+void CMFCApplication1View::OnPointprocessingHistogram()
+{
+	
+}
+
+
+void CMFCApplication1View::OnHistogramColor()
+{
+	OnRgbtohsiChange(); // HSI 정보 획득
+
+	if (histogram==NULL)
+		histogram = new int[360]; // Hue 360도 스케일
+	for (int i = 0;i < 360;i++) {
+		histogram[i] = 0;
+	}
+
+	for (int i = 0;i < imgHeight;i++) {
+		for (int j = 0;j < imgWidth;j++) {
+			int color = (int)hueBuffer[i][j] * 180 / M_PI;
+			histogram[color]++;
+		}
+	}
+	int max = 0;
+	for (int i = 0; i < 360;i++) {
+		if( histogram[i] > max)
+			max = histogram[i];
+	}
+	for (int i = 0; i < imgHeight;i++) {
+		for (int j = 0;j < imgWidth;j++) {
+			int color = (int)hueBuffer[i][j] * 180 / M_PI;
+			hueBuffer[i][j] = (float)histogram[color] * 255 / max;
+		}
+	}
+	viewType = 2;
+	Invalidate(FALSE);
+}
+
+
+void CMFCApplication1View::OnHistogramIntensity()
+{
+	OnRgbtohsiChange(); // HSI 정보 획득
+
+	if(histogram==NULL)
+		histogram = new int[255]; 
+	for (int i = 0;i < 256;i++) {
+		histogram[i] = 0;
+	}
+
+	for (int i = 0;i < imgHeight;i++) {
+		for (int j = 0;j < imgWidth;j++) {
+			int inten = (int)(intenBuffer[i][j] * 255);
+			histogram[inten]++;
+		}
+	}
+	int max = 0;
+	for (int i = 0; i < 256;i++) {
+		if (histogram[i] > max)
+			max = histogram[i];
+	}
+	for (int i = 0; i < imgHeight;i++) {
+		for (int j = 0;j < imgWidth;j++) {
+			int inten = (int)(intenBuffer[i][j] * 255);
+			hueBuffer[i][j] = (float)histogram[inten] * 255 / max;
+		}
+	}
+	viewType = 2;
+	Invalidate(FALSE);
+}
+
+
+
+
+
+
+
+
+void CMFCApplication1View::OnPointprocessingFacedetection()
+{
+	/*
+	피부색 조건
+	Saturation >= 0.2
+	Hue < 50도
+	Intensity/Saturation 0.5 ~ 3.0 -> deleted
+	*/
+
+	OnRgbtohsiChange();
+	for (int i = 0;i < imgHeight;i++) {
+		for (int j = 0;j < imgWidth;j++) {
+			float S = satuBuffer[i][j];
+			float H = hueBuffer[i][j];
+			float I = intenBuffer[i][j];
+
+			if (S < 0.2 || S > 0.7)
+				intenBuffer[i][j] = 0;
+			
+			if (H > 0.88)
+				intenBuffer[i][j] = 0;
+
+			//if (I / S < 0.5 || I / S > 3.0)
+				//intenBuffer[i][j] = 0;
+		}
+	}
+	OnRgbtohsiHsi2rgb();
+	viewType = 3;
+	Invalidate(FALSE);
+
 }
