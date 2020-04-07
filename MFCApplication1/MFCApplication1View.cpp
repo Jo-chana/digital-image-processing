@@ -41,6 +41,20 @@ BEGIN_MESSAGE_MAP(CMFCApplication1View, CView)
 	ON_COMMAND(ID_RGB2HSI_CHANGE, &CMFCApplication1View::OnRgb2hsiChange)
 	ON_COMMAND(ID_RGBTOHSI_HSI2RGB, &CMFCApplication1View::OnRgbtohsiHsi2rgb)
 	ON_COMMAND(ID_POINTPROCESSING_FACEDETECTION, &CMFCApplication1View::OnPointprocessingFacedetection)
+	ON_COMMAND(ID_HISTOGRAM_EQUALIZATION, &CMFCApplication1View::OnHistogramEqualization)
+	ON_COMMAND(ID_BMP_BLACKWHITE, &CMFCApplication1View::OnBmpBlackwhite)
+	ON_COMMAND(ID_BMP_COLOROPTION, &CMFCApplication1View::OnBmpColoroption)
+	ON_COMMAND(ID_HISTOGRAM_COLOREQUALIZATION, &CMFCApplication1View::OnHistogramColorequalization)
+	ON_COMMAND(ID_BASICGRAYLEVEL_NEGATIVE, &CMFCApplication1View::OnBasicgraylevelNegative)
+	ON_COMMAND(ID_BASICGRAYLEVEL_LOG, &CMFCApplication1View::OnBasicgraylevelLog)
+	ON_COMMAND(ID_BASICGRAYLEVEL_POWER, &CMFCApplication1View::OnBasicgraylevelPower)
+	ON_COMMAND(ID_BASICGRAYLEVEL_THRESHOLD, &CMFCApplication1View::OnBasicgraylevelThreshold)
+	ON_COMMAND(ID_POWER_GAMMA0, &CMFCApplication1View::OnPowerGamma0)
+	ON_COMMAND(ID_POWER_GAMMA1, &CMFCApplication1View::OnPowerGamma1)
+	ON_COMMAND(ID_POWER_GAMMA2, &CMFCApplication1View::OnPowerGamma2)
+	ON_COMMAND(ID_BASICGRAYLEVEL_SOLARIZING, &CMFCApplication1View::OnBasicgraylevelSolarizing)
+	ON_COMMAND(ID_POWER_GAMMA3, &CMFCApplication1View::OnPowerGamma3)
+	ON_COMMAND(ID_POWER_GAMMA4, &CMFCApplication1View::OnPowerGamma4)
 END_MESSAGE_MAP()
 
 
@@ -63,6 +77,9 @@ float** intenBuffer; //이미지 밝기 정보
 int viewType = 0; // 화면 출력 유형 정보
 
 int* histogram; // 히스토그램 수치 정보
+bool is_color = FALSE; //컬러사진 여부 정보
+
+float** intensity; // 흑백 이미지 편의용 
 
 CMFCApplication1View::CMFCApplication1View()
 {
@@ -118,6 +135,11 @@ void CMFCApplication1View::OnDraw(CDC* pDC)
 					p.y = i;
 					pDC->SetPixel(p, RGB(rgb_red[i][j], rgb_green[i][j], rgb_blue[i][j]));
 
+				}
+				if (viewType == 4) {
+					p.x = j + imgWidth + 10;
+					p.y = i;
+					pDC->SetPixel(p, RGB(intensity[i][j], intensity[i][j], intensity[i][j]));
 				}
 
 			}
@@ -238,6 +260,78 @@ void CMFCApplication1View::OnImageBmp()
 
 }
 
+void CMFCApplication1View::OnBmpColoroption()
+{
+	is_color = TRUE;
+	OnImageBmp();
+}
+
+void CMFCApplication1View::OnBmpBlackwhite()
+{ 
+	is_color = FALSE;
+	//1. 파일 다이얼로그로부터 BMP 파일 입력
+	CFileDialog dlg(TRUE, ".bmp", NULL, NULL, "Bitmap File(*.bmp)|*.bmp||");
+	if (IDOK != dlg.DoModal())
+		return;
+	CString filename = dlg.GetPathName();
+	if (rgbBuffer != NULL) {//이미 할당된 경우 메모리 헤제
+		for (int i = 0;i < imgHeight;i++)
+			delete[] rgbBuffer[i];
+		delete[] rgbBuffer;
+	}
+
+	//2. 파일을 오픈하여 영상 정보 획득
+	CFile file;
+	file.Open(filename, CFile::modeRead);
+	file.Read(&bmpHeader, sizeof(BITMAPFILEHEADER));
+	file.Read(&bmpInfo, sizeof(BITMAPINFOHEADER));
+	imgWidth = bmpInfo.biWidth;
+	imgHeight = bmpInfo.biHeight;
+
+	//3. 이미지를 저장할 버퍼 할당(2차원 배열) [이미지 높이*이미지 너비 만큼 할당]
+	rgbBuffer = new RGBQUAD*[imgHeight];
+	for (int i = 0;i < imgHeight;i++)
+		rgbBuffer[i] = new RGBQUAD[imgWidth];
+
+	//4. 이미지의 너비가 4의 배수인지 체크
+	// BMP 조건 가로는 4byte 이어야 한다.
+	// 한 픽셀이 1바이트이므로, 가로(m_width) 이 4의 배수인지 아닌지 알아야 함
+	// b4byte : 4byte 의 배수인지 아닌지 안다.
+	// upbyte : 4byte 에 모자라는 바이트다.
+	bool b4byte = false;
+	int upbyte = 0;
+	if (imgWidth % 4 == 0) {
+		// 4의 배수로 떨어지는 경우
+		b4byte = true;
+		upbyte = 0;
+	}
+	else {
+		// 4의 배수로 떨어지지 않는 경우
+		b4byte = false;
+		upbyte = 4 - (imgWidth % 4);
+	}
+
+	//5. 픽셀 데이터를 파일로부터 읽어옴
+	BYTE data[1];
+	for (int i = 0; i < imgHeight;i++) {
+		for (int j = 0;j < imgWidth;j++) {
+			file.Read(&data, 1);
+			//이미지 거꾸로 저장되어 있으므로 거꾸로 읽어옴
+			rgbBuffer[imgHeight - i - 1][j].rgbBlue = data[0];
+			rgbBuffer[imgHeight - i - 1][j].rgbGreen = data[0];
+			rgbBuffer[imgHeight - i - 1][j].rgbRed = data[0];
+
+		}
+		if (b4byte == false)
+		{
+			//가로가 4byte 배수가 아니면 쓰레기 값을 읽는다
+			file.Read(&data, upbyte);
+		}
+	}
+	file.Close(); //파일 닫기
+	viewType = 0;
+	Invalidate(TRUE); // 화면 갱신
+}
 
 BYTE* LoadJpegFromOpenFile(FILE *fp, BITMAPINFOHEADER *pbh, UINT *pWidth, UINT *pHeight) {
 	//파일로부터 JPG 정보 획득
@@ -266,6 +360,7 @@ BYTE* LoadJpegFromOpenFile(FILE *fp, BITMAPINFOHEADER *pbh, UINT *pWidth, UINT *
 
 void CMFCApplication1View::OnImageJepg()
 {
+	is_color = TRUE;
 	CFileDialog dlg(TRUE, ".jpg", NULL, NULL, "Jpeg File(*.jpg)|*jpg||");
 	if (IDOK != dlg.DoModal()) return;
 	CString filename = dlg.GetPathName();
@@ -304,11 +399,10 @@ void CMFCApplication1View::OnImageJepg()
 
 
 void CMFCApplication1View::OnRgbtohsiChange() // 함수 재사용 목적으로 작성
-{   //1. rgbBuffer 에 이미지가 들어있는 지 여부 확인
+{   
+	//2. rgbBuffer 에 이미지가 들어있는 지 여부 확인
 	if (rgbBuffer == NULL)
 		OnImageBmp(); //rgbBuffer 에 데이터가 없는 경우, 로드 함수를 호출하여 이미지 획득
-
-	//2. 변수 메모리 할당
 
 	hueBuffer = new float*[imgHeight];
 	satuBuffer = new float*[imgHeight];
@@ -366,11 +460,6 @@ void CMFCApplication1View::OnRgb2hsiChange()
 
 void CMFCApplication1View::OnRgbtohsiHsi2rgb() // 함수 재사용 목적으로 작성
 {
-	//3. 변환된 HSI 컬러를 RGB 컬러스페이스로 변환
-
-
-	// 새로운 이미지 변수 메모리 할당
-
 	rgb_red = new float*[imgHeight];
 	rgb_green = new float*[imgHeight];
 	rgb_blue = new float*[imgHeight];
@@ -398,37 +487,37 @@ void CMFCApplication1View::OnRgbtohsiHsi2rgb() // 함수 재사용 목적으로 작성
 				b = 0;
 			}
 			else if (S == 0) {
-				r = 1 / 3;
-				g = 1 / 3;
-				b = 1 / 3;
+				r = 1. / 3.;
+				g = 1. / 3.;
+				b = 1. / 3.;
 			}
 			else {
 
-				if (H <= 2 * M_PI / 3) { // 0 <= H <= 2/3Pi
-					b = (1 - S) / 3;
-					r = (1 + (S*cos((double)H) / cos((double)M_PI / 3 - H))) / 3;
+				if (H < 2. * M_PI / 3.) { // 0 <= H <= 2/3Pi
+					b = (1 - S) / 3.;
+					r = (1 + (S*cos((double)H) / cos((double)M_PI / 3 - H))) / 3.;
 					g = 1 - (r + b);
 
 				}
-				else if (H <= 4 * M_PI / 3) { // 2/3Pi < H <= 4/3Pi
-					H = H - 2 * M_PI / 3;
-					r = (1 - S) / 3;
-					g = (1 + (S*cos((double)H) / cos((double)M_PI / 3 - H))) / 3;
+				else if (H < 4 * M_PI / 3) { // 2/3Pi < H <= 4/3Pi
+					H = H - 2. * M_PI / 3.;
+					r = (1 - S) / 3.;
+					g = (1 + (S*cos((double)H) / cos((double)M_PI / 3 - H))) / 3.;
 					b = 1 - (r + g);
 
 				}
 				else { // 4/3Pi < H =< 2Pi
-					H = H - 4 * M_PI / 3;
-					g = (1 - S) / 3;
-					b = (1 + (S*cos((double)H) / cos((double)M_PI / 3 - H))) / 3;
+					H = H - 4. * M_PI / 3.;
+					g = (1 - S) / 3.;
+					b = (1 + (S*cos((double)H) / cos((double)M_PI / 3 - H))) / 3.;
 					r = 1 - (g + b);
 
 				}
 			}
 
-			R = min(255, 255 * 3 * r * I);
-			G = min(255, 255 * 3 * g * I);
-			B = min(255, 255 * 3 * b * I);
+			R = min(255, 255 * 3 * r * I); //255 * 3 * r*I;
+			G = min(255, 255 * 3 * g * I); //255 * 3 * g*I;
+			B = min(255, 255 * 3 * b * I); //255 * 3 * b*I;
 
 			//원본 이미지 데이터를 보존하기 위해 새로운 변수에 저장
 			rgb_red[i][j] = R;
@@ -441,9 +530,10 @@ void CMFCApplication1View::OnRgbtohsiHsi2rgb() // 함수 재사용 목적으로 작성
 void CMFCApplication1View::OnPointprocessingContraststretching()
 {
 	OnRgbtohsiChange();
+
 	for (int i = 0;i < imgHeight;i++) {
 		for (int j = 0; j < imgWidth;j++) {
-			intenBuffer[i][j] = min(1, intenBuffer[i][j] * 1.5); // 밝기 1.5배
+			intenBuffer[i][j] = intenBuffer[i][j] * 1.5; // 밝기 1.5배
 		}
 	}
 
@@ -463,7 +553,7 @@ void CMFCApplication1View::OnPointprocessingSaturationinjecting()
 	OnRgbtohsiChange();
 	for (int i = 0;i < imgHeight;i++) {
 		for (int j = 0;j < imgWidth;j++) {
-			satuBuffer[i][j] = min(1, satuBuffer[i][j] * 2); // 채도 2배 개선
+			satuBuffer[i][j] = min(1, satuBuffer[i][j] * 1.5); // 채도 1.5배 개선
 		}
 	}
 
@@ -492,7 +582,7 @@ void CMFCApplication1View::OnHistogramColor()
 
 	for (int i = 0;i < imgHeight;i++) {
 		for (int j = 0;j < imgWidth;j++) {
-			int color = (int)hueBuffer[i][j] * 180 / M_PI;
+			int color = (int)(hueBuffer[i][j] * 180 / M_PI);
 			histogram[color]++;
 		}
 	}
@@ -503,7 +593,7 @@ void CMFCApplication1View::OnHistogramColor()
 	}
 	for (int i = 0; i < imgHeight;i++) {
 		for (int j = 0;j < imgWidth;j++) {
-			int color = (int)hueBuffer[i][j] * 180 / M_PI;
+			int color = (int)(hueBuffer[i][j] * 180 / M_PI);
 			hueBuffer[i][j] = (float)histogram[color] * 255 / max;
 		}
 	}
@@ -566,10 +656,10 @@ void CMFCApplication1View::OnPointprocessingFacedetection()
 			float H = hueBuffer[i][j];
 			float I = intenBuffer[i][j];
 
-			if (S < 0.2 || S > 0.7)
+			if (S < 0.1 || S > 0.6)
 				intenBuffer[i][j] = 0;
 			
-			if (H > 0.88)
+			if (H > 0.88 || H < 0.1)
 				intenBuffer[i][j] = 0;
 
 			//if (I / S < 0.5 || I / S > 3.0)
@@ -581,3 +671,305 @@ void CMFCApplication1View::OnPointprocessingFacedetection()
 	Invalidate(FALSE);
 
 }
+
+
+void CMFCApplication1View::OnHistogramEqualization()
+{
+	// Intensity 값을 기준으로 histogram equalize
+	OnRgbtohsiChange();
+
+	// 히스토그램 초기화
+	if (histogram == NULL)
+		histogram = new int[255];
+	for (int i = 0;i < 256;i++) {
+		histogram[i] = 0;
+	}
+
+	float max_pixel = 0;
+	float total_pixel = 0;
+
+	// 밝기 히스토그램 
+	for (int i = 0;i < imgHeight;i++) {
+		for (int j = 0;j < imgWidth;j++) {
+			int inten = (int)(intenBuffer[i][j] * 255.);
+			histogram[inten]++;
+			total_pixel++;
+			if (inten > max_pixel)
+				max_pixel = inten;
+		}
+	}
+
+	// 히스토그램 정규화
+	float sum = 0.;
+	float* sum_hist = new float[255];
+	for (int i = 0;i < 256;i++) {
+		sum += histogram[i];
+		sum_hist[i] = sum*max_pixel/total_pixel + 0.5;
+	}
+
+	//컬러사진일때
+	if (is_color) {
+		//변환
+		for (int i = 0;i < imgHeight;i++) {
+			for (int j = 0;j < imgWidth;j++) {
+				intenBuffer[i][j] = (float)sum_hist[(int)(intenBuffer[i][j] * 255)] / 255.;
+			}
+		}
+
+		OnRgbtohsiHsi2rgb();
+
+		viewType = 3;
+		Invalidate(FALSE);
+	}
+	
+	//흑백사진일때
+	else {
+
+		intensity = new float*[imgHeight];
+		for (int i = 0;i < imgHeight;i++) {
+			intensity[i] = new float[imgWidth];
+		}
+		// 변환
+		for (int i = 0;i < imgHeight;i++) {
+			for (int j = 0;j < imgWidth;j++) {
+				intensity[i][j] = sum_hist[(int)(intenBuffer[i][j] * 255.)];
+			}
+		}
+
+		// 출력
+		viewType = 4;
+		Invalidate(FALSE);
+	}
+
+}
+
+
+void CMFCApplication1View::OnHistogramColorequalization()
+{
+	if (rgbBuffer == NULL)
+		OnImageBmp();
+
+	int* hred = new int[255];
+	int* hgreen = new int[255];
+	int* hblue = new int[255];
+
+	for (int i = 0;i < 256;i++) {
+		hred[i] = 0;hgreen[i] = 0;hblue[i] = 0;
+	}
+
+	float total_pixel = 0;
+	float max_red = 0;
+	float max_green = 0;
+	float max_blue = 0;
+
+	// RGB 히스토그램 
+	for (int i = 0;i < imgHeight;i++) {
+		for (int j = 0;j < imgWidth;j++) {
+			total_pixel++;
+			hred[rgbBuffer[i][j].rgbRed]++;
+			hgreen[rgbBuffer[i][j].rgbGreen]++;
+			hblue[rgbBuffer[i][j].rgbBlue]++;
+			max_red = (rgbBuffer[i][j].rgbRed > max_red ? rgbBuffer[i][j].rgbRed : max_red);
+			max_green = (rgbBuffer[i][j].rgbGreen > max_green ? rgbBuffer[i][j].rgbGreen : max_green);
+			max_blue = (rgbBuffer[i][j].rgbBlue > max_blue ? rgbBuffer[i][j].rgbBlue : max_blue);
+		}
+	}
+
+	// 히스토그램 정규화
+	int sumred = 0;
+	int sumgreen = 0;
+	int sumblue = 0;
+
+	float* sum_red = new float[255];
+	float* sum_green = new float[255];
+	float* sum_blue = new float[255];
+
+	for (int i = 0;i < 256;i++) {
+		sumred += hred[i];
+		sumgreen += hgreen[i];
+		sumblue += hblue[i];
+		sum_red[i] = (float)sumred*max_red / total_pixel + 0.5;
+		sum_green[i] = (float)sumgreen*max_green / total_pixel + 0.5;
+		sum_blue[i] = (float)sumblue*max_blue / total_pixel + 0.5;
+	}
+
+	rgb_red = new float*[imgHeight];
+	rgb_green = new float*[imgHeight];
+	rgb_blue = new float*[imgHeight];
+	for (int i = 0;i < imgHeight;i++) {
+		rgb_red[i] = new float[imgWidth];
+		rgb_green[i] = new float[imgWidth];
+		rgb_blue[i] = new float[imgWidth];
+	}
+	
+
+	for (int i = 0;i < imgHeight;i++) {
+		for (int j = 0;j < imgWidth;j++) {
+			rgb_red[i][j] = sum_red[rgbBuffer[i][j].rgbRed];
+			rgb_green[i][j] =sum_green[rgbBuffer[i][j].rgbGreen];
+			rgb_blue[i][j] = sum_blue[rgbBuffer[i][j].rgbBlue];
+		}
+	}
+
+	viewType = 3;
+	Invalidate(FALSE);
+}
+
+
+
+
+
+
+void CMFCApplication1View::OnBasicgraylevelNegative()
+{
+	if (rgbBuffer == NULL)
+		OnBmpBlackwhite();
+	
+	rgb_red = new float*[imgHeight];
+	rgb_green = new float*[imgHeight];
+	rgb_blue = new float*[imgHeight];
+	for (int i = 0;i < imgHeight;i++){
+		rgb_red[i] = new float[imgWidth];
+		rgb_green[i] = new float[imgWidth];
+		rgb_blue[i] = new float[imgWidth];
+	}
+
+	for (int i = 0;i < imgHeight;i++) {
+		for (int j = 0;j < imgWidth;j++) {
+			rgb_red[i][j] = 255 - rgbBuffer[i][j].rgbRed;
+			rgb_green[i][j] = 255 - rgbBuffer[i][j].rgbGreen;
+			rgb_blue[i][j] = 255 - rgbBuffer[i][j].rgbBlue;
+		}
+	}
+	viewType = 3;
+	Invalidate(FALSE);
+
+}
+
+
+void CMFCApplication1View::OnBasicgraylevelLog()
+{
+	
+}
+
+float gamma;
+
+void CMFCApplication1View::OnBasicgraylevelPower()
+{
+	if (is_color)
+		return;
+	if (rgbBuffer == NULL)
+		OnBmpBlackwhite();
+
+	intensity = new float*[imgHeight];
+	for (int i = 0;i < imgHeight;i++) {
+		intensity[i] = new float[imgWidth];
+	}
+
+	for (int i = 0;i < imgHeight;i++) {
+		for (int j = 0;j < imgWidth;j++) {
+			float inten = rgbBuffer[i][j].rgbRed;
+			inten = inten / 255.;
+			inten = pow(inten, (float)gamma);
+			inten = inten * 255.;
+			intensity[i][j] = inten;
+		}
+	}
+	viewType = 4;
+	Invalidate(FALSE);
+
+}
+
+
+void CMFCApplication1View::OnBasicgraylevelThreshold()
+{
+	OnHistogramEqualization();
+
+	if (is_color)
+		intensity = intenBuffer;
+
+	//평균값 계산
+	float sum = 0; // 총 합
+	float total = 0; // 픽셀 수
+	float med = 0; // 평균
+	for (int i = 0;i < imgHeight;i++) {
+		for (int j = 0;j < imgWidth;j++) {
+			sum += intensity[i][j];
+			total++;
+		}
+	}
+	med = sum / total;
+
+	// 이진화
+	for (int i = 0;i < imgHeight;i++) {
+		for (int j = 0;j < imgWidth;j++) {
+			intensity[i][j] = intensity[i][j] > med ? 255 : 0;
+		}
+	}
+
+	viewType = 4;
+	Invalidate(FALSE);
+}
+
+
+void CMFCApplication1View::OnPowerGamma0()
+{
+	gamma = 0.3;
+	OnBasicgraylevelPower();
+}
+
+
+void CMFCApplication1View::OnPowerGamma1()
+{
+	gamma = 0.5;
+	OnBasicgraylevelPower();
+}
+
+
+void CMFCApplication1View::OnPowerGamma2()
+{
+	gamma = 0.7;
+	OnBasicgraylevelPower();
+}
+
+void CMFCApplication1View::OnPowerGamma3()
+{
+	gamma = 1.3;
+	OnBasicgraylevelPower();
+}
+
+
+void CMFCApplication1View::OnPowerGamma4()
+{
+	gamma = 1.5;
+	OnBasicgraylevelPower();
+}
+
+void CMFCApplication1View::OnBasicgraylevelSolarizing()
+{
+	OnHistogramEqualization();
+
+	if (is_color)
+		intensity = intenBuffer;
+
+	// 데이터 정규화
+	for (int i = 0;i < imgHeight;i++) {
+		for (int j = 0;j < imgWidth;j++) {
+			intensity[i][j] = 3.14*intensity[i][j] / 255.;
+			intensity[i][j] = sin(intensity[i][j])*255.;
+		}
+	}
+	if (is_color) {
+		intenBuffer = intensity;
+		OnRgbtohsiHsi2rgb();
+		viewType = 3;
+		Invalidate(FALSE);
+	}
+	else {
+		viewType = 4;
+		Invalidate(FALSE);
+	}
+}
+
+
+
