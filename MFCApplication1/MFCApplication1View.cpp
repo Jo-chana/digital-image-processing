@@ -20,6 +20,9 @@
 #include "Jpegfile.h"
 #define _USE_MATH_DEFINES
 #include <cmath>
+//#include "opencv2/opencv.hpp"
+//using namespace cv;
+
 
 // CMFCApplication1View
 
@@ -55,6 +58,37 @@ BEGIN_MESSAGE_MAP(CMFCApplication1View, CView)
 	ON_COMMAND(ID_BASICGRAYLEVEL_SOLARIZING, &CMFCApplication1View::OnBasicgraylevelSolarizing)
 	ON_COMMAND(ID_POWER_GAMMA3, &CMFCApplication1View::OnPowerGamma3)
 	ON_COMMAND(ID_POWER_GAMMA4, &CMFCApplication1View::OnPowerGamma4)
+	ON_COMMAND(ID_IMAGELOAD_AVI, &CMFCApplication1View::OnImageloadAvi)
+	ON_COMMAND(ID_COLORSPACE_TEST, &CMFCApplication1View::OnColorspaceTest)
+	ON_COMMAND(ID_MEAN_3, &CMFCApplication1View::OnMean3)
+	ON_COMMAND(ID_GAUSSIAN_3, &CMFCApplication1View::OnGaussian3)
+	ON_COMMAND(ID_IMAGELOAD_NEWIMAGESAVE, &CMFCApplication1View::OnImageloadNewimagesave)
+	ON_COMMAND(ID_POWER_GAMMA5, &CMFCApplication1View::OnPowerGamma5)
+	ON_COMMAND(ID_POWER_GAMMA6, &CMFCApplication1View::OnPowerGamma6)
+	ON_COMMAND(ID_POWER_GAMMA7, &CMFCApplication1View::OnPowerGamma7)
+	ON_COMMAND(ID_MEAN_5, &CMFCApplication1View::OnMean5)
+	ON_COMMAND(ID_MEAN_7, &CMFCApplication1View::OnMean7)
+	ON_COMMAND(ID_GAUSSIAN_5, &CMFCApplication1View::OnGaussian5)
+	ON_COMMAND(ID_GAUSSIAN_7, &CMFCApplication1View::OnGaussian7)
+	ON_COMMAND(ID_SHAPE_BLOCK, &CMFCApplication1View::OnShapeBlock)
+	ON_COMMAND(ID_SIZE_3, &CMFCApplication1View::OnSize3)
+	ON_COMMAND(ID_SIZE_5, &CMFCApplication1View::OnSize5)
+	ON_COMMAND(ID_SIZE_7, &CMFCApplication1View::OnSize7)
+	ON_COMMAND(ID_MEDIAN_PROCESS, &CMFCApplication1View::OnMedianProcess)
+	ON_COMMAND(ID_COLOROPTION_COLOR, &CMFCApplication1View::OnColoroptionColor)
+	ON_COMMAND(ID_COLOROPTION_GRAYSCALE, &CMFCApplication1View::OnColoroptionGrayscale)
+	ON_COMMAND(ID_SHAPE_CROSS, &CMFCApplication1View::OnShapeCross)
+	ON_COMMAND(ID_SHAPE_DIAMOND, &CMFCApplication1View::OnShapeDiamond)
+	ON_COMMAND(ID_SHAPE_XSHAPE, &CMFCApplication1View::OnShapeXshape)
+	ON_COMMAND(ID_COLOROPTION_INTENSITY, &CMFCApplication1View::OnColoroptionIntensity)
+	ON_COMMAND(ID_RGB2HSI_GRAYSCALE, &CMFCApplication1View::OnRgb2hsiGrayscale)
+	ON_COMMAND(ID_COLOROPTION_RGB, &CMFCApplication1View::OnColoroptionRgb)
+	ON_COMMAND(ID_COLORPROCESS_HSI, &CMFCApplication1View::OnColorprocessHsi)
+	ON_COMMAND(ID_MASK2_1, &CMFCApplication1View::OnMaskHB12)
+	ON_COMMAND(ID_MORPHOLOGY_DILATION, &CMFCApplication1View::OnMorphologyDilation)
+	ON_COMMAND(ID_MORPHOLOGY_EROSION, &CMFCApplication1View::OnMorphologyErosion)
+	ON_COMMAND(ID_STRUCTURE_BLOCK, &CMFCApplication1View::OnStructureBlock)
+	ON_COMMAND(ID_SIZE_4, &CMFCApplication1View::OnSize4)
 END_MESSAGE_MAP()
 
 
@@ -141,10 +175,21 @@ void CMFCApplication1View::OnDraw(CDC* pDC)
 					p.y = i;
 					pDC->SetPixel(p, RGB(intensity[i][j], intensity[i][j], intensity[i][j]));
 				}
-
+				
 			}
 		}		
-		
+		if (viewType == 5) {
+			float max = 0;
+			for (int i = 0;i < 256;i++) {
+				if (histogram[i] > max)
+					max = histogram[i];
+			}
+
+			for (int i = 0;i < 256;i++) {
+				histogram[i] = histogram[i]*imgHeight / max;
+				pDC->Rectangle(imgWidth + (i * 2), imgHeight - histogram[i], imgWidth + 2 + (i * 2), imgHeight);
+			}
+		}
 	}
 }
 
@@ -397,6 +442,86 @@ void CMFCApplication1View::OnImageJepg()
 	Invalidate(TRUE);
 }
 
+void CMFCApplication1View::OnRgb2hsiGrayscale()
+{
+	OnRgbtohsiChange();
+	for (int i = 0;i < imgHeight;i++) {
+		for (int j = 0;j < imgWidth;j++) {
+			intenBuffer[i][j] *= 255;
+		}
+	}
+	intensity = intenBuffer;
+	viewType = 4;
+	Invalidate(FALSE);
+}
+
+
+void CMFCApplication1View::OnColoroptionColor()
+{
+	is_color = TRUE;
+}
+
+
+void CMFCApplication1View::OnColoroptionGrayscale()
+{
+	is_color = FALSE;
+}
+
+void CMFCApplication1View::OnImageloadNewimagesave()
+{
+	if (!rgbBuffer)
+		return;
+	if (viewType == 3) {
+		for (int i = 0;i < imgHeight;i++) {
+			for (int j = 0;j < imgWidth;j++) {
+				rgbBuffer[i][j].rgbBlue = rgb_blue[i][j];
+				rgbBuffer[i][j].rgbRed = rgb_red[i][j];
+				rgbBuffer[i][j].rgbGreen = rgb_green[i][j];
+			}
+		}
+	}
+	if (viewType == 4) {
+		for (int i = 0;i < imgHeight;i++) {
+			for (int j = 0;j < imgWidth;j++) {
+				rgbBuffer[i][j].rgbBlue = intensity[i][j];
+				rgbBuffer[i][j].rgbRed = intensity[i][j];
+				rgbBuffer[i][j].rgbGreen = intensity[i][j];
+			}
+		}
+	}
+	viewType = 0;
+	Invalidate(TRUE);
+
+}
+
+void CMFCApplication1View::OnImageloadAvi()
+{
+	/*CFileDialog dlg(TRUE, ".avi", NULL, NULL, "AVI File (*.avi)|*.avi||");
+	if (IDOK != dlg.DoModal())
+		return;
+
+	CString cfilename = dlg.GetPathName();
+	CT2CA strAtl(cfilename);
+	String filename(strAtl);
+
+	cv::VideoCapture Capture;
+	Capture.open(filename);
+
+	if (!Capture.isOpened())
+		AfxMessageBox("Error Video");
+
+	for (;;) {
+		Mat frame;
+		Capture >> frame;
+		if (frame.data == nullptr)
+			break;
+		imshow("video", frame);
+		if (waitkey(30) >= 0)
+			break;
+	}
+	AfxMessageBox("Completed");*/
+
+}
 
 void CMFCApplication1View::OnRgbtohsiChange() // 함수 재사용 목적으로 작성
 {   
@@ -431,7 +556,7 @@ void CMFCApplication1View::OnRgbtohsiChange() // 함수 재사용 목적으로 작성
 				total = (0.5*(r - g + r - b) / sqrt((r - g)*(r - g) + (r - b)*(g - b)));
 				hueBuffer[i][j] = acos((double)total);
 				if (b > g) {
-					hueBuffer[i][j] = 2*M_PI - hueBuffer[i][j];
+					hueBuffer[i][j] = 2*3.1415 - hueBuffer[i][j];
 				}
 			} // 함수 재사용을 위해 정규화 와 출력은 함수적으로 분리하였음.
 		}
@@ -493,23 +618,23 @@ void CMFCApplication1View::OnRgbtohsiHsi2rgb() // 함수 재사용 목적으로 작성
 			}
 			else {
 
-				if (H < 2. * M_PI / 3.) { // 0 <= H <= 2/3Pi
+				if (H < 2. * 3.1415 / 3.) { // 0 <= H <= 2/3Pi
 					b = (1 - S) / 3.;
-					r = (1 + (S*cos((double)H) / cos((double)M_PI / 3 - H))) / 3.;
+					r = (1 + (S*cos((double)H) / cos(3.1415 / 3 - H))) / 3.;
 					g = 1 - (r + b);
 
 				}
-				else if (H < 4 * M_PI / 3) { // 2/3Pi < H <= 4/3Pi
-					H = H - 2. * M_PI / 3.;
+				else if (H < 4 * 3.1415 / 3) { // 2/3Pi < H <= 4/3Pi
+					H = H - 2. * 3.1415 / 3.;
 					r = (1 - S) / 3.;
-					g = (1 + (S*cos((double)H) / cos((double)M_PI / 3 - H))) / 3.;
+					g = (1 + (S*cos((double)H) / cos(3.1415 / 3 - H))) / 3.;
 					b = 1 - (r + g);
 
 				}
 				else { // 4/3Pi < H =< 2Pi
-					H = H - 4. * M_PI / 3.;
+					H = H - 4. * 3.1415 / 3.;
 					g = (1 - S) / 3.;
-					b = (1 + (S*cos((double)H) / cos((double)M_PI / 3 - H))) / 3.;
+					b = (1 + (S*cos((double)H) / cos(3.1415 / 3 - H))) / 3.;
 					r = 1 - (g + b);
 
 				}
@@ -582,7 +707,7 @@ void CMFCApplication1View::OnHistogramColor()
 
 	for (int i = 0;i < imgHeight;i++) {
 		for (int j = 0;j < imgWidth;j++) {
-			int color = (int)(hueBuffer[i][j] * 180 / M_PI);
+			int color = (int)(hueBuffer[i][j] * 180 / 3.1415);
 			histogram[color]++;
 		}
 	}
@@ -593,7 +718,7 @@ void CMFCApplication1View::OnHistogramColor()
 	}
 	for (int i = 0; i < imgHeight;i++) {
 		for (int j = 0;j < imgWidth;j++) {
-			int color = (int)(hueBuffer[i][j] * 180 / M_PI);
+			int color = (int)(hueBuffer[i][j] * 180 / 3.1415);
 			hueBuffer[i][j] = (float)histogram[color] * 255 / max;
 		}
 	}
@@ -618,18 +743,9 @@ void CMFCApplication1View::OnHistogramIntensity()
 			histogram[inten]++;
 		}
 	}
-	int max = 0;
-	for (int i = 0; i < 256;i++) {
-		if (histogram[i] > max)
-			max = histogram[i];
-	}
-	for (int i = 0; i < imgHeight;i++) {
-		for (int j = 0;j < imgWidth;j++) {
-			int inten = (int)(intenBuffer[i][j] * 255);
-			hueBuffer[i][j] = (float)histogram[inten] * 255 / max;
-		}
-	}
-	viewType = 2;
+
+	
+	viewType = 5;
 	Invalidate(FALSE);
 }
 
@@ -644,9 +760,8 @@ void CMFCApplication1View::OnPointprocessingFacedetection()
 {
 	/*
 	피부색 조건
-	Saturation >= 0.2
-	Hue < 50도
-	Intensity/Saturation 0.5 ~ 3.0 -> deleted
+	Saturation 0.1 ~ 0.6
+	Hue < 0.1 || > 0.88
 	*/
 
 	OnRgbtohsiChange();
@@ -662,8 +777,6 @@ void CMFCApplication1View::OnPointprocessingFacedetection()
 			if (H > 0.88 || H < 0.1)
 				intenBuffer[i][j] = 0;
 
-			//if (I / S < 0.5 || I / S > 3.0)
-				//intenBuffer[i][j] = 0;
 		}
 	}
 	OnRgbtohsiHsi2rgb();
@@ -852,14 +965,14 @@ void CMFCApplication1View::OnBasicgraylevelLog()
 	
 }
 
-float gamma;
+double gamma;
 
 void CMFCApplication1View::OnBasicgraylevelPower()
 {
-	if (is_color)
-		return;
+	
 	if (rgbBuffer == NULL)
 		OnBmpBlackwhite();
+	OnRgbtohsiChange();
 
 	intensity = new float*[imgHeight];
 	for (int i = 0;i < imgHeight;i++) {
@@ -868,16 +981,79 @@ void CMFCApplication1View::OnBasicgraylevelPower()
 
 	for (int i = 0;i < imgHeight;i++) {
 		for (int j = 0;j < imgWidth;j++) {
-			float inten = rgbBuffer[i][j].rgbRed;
-			inten = inten / 255.;
-			inten = pow(inten, (float)gamma);
-			inten = inten * 255.;
+			double inten = intenBuffer[i][j];
+			inten = pow(inten, gamma);
 			intensity[i][j] = inten;
 		}
 	}
-	viewType = 4;
-	Invalidate(FALSE);
+	if (is_color) {
+		intenBuffer = intensity;
+		OnRgbtohsiHsi2rgb();
+		viewType = 3;
+		Invalidate(FALSE);
+	}
+	else {
+		for (int i = 0;i < imgHeight;i++) {
+			for (int j = 0;j < imgWidth;j++) {
+				intensity[i][j] = intensity[i][j] * 255.;
+			}
+		}
+		viewType = 4;
+		Invalidate(FALSE);
+	}
+}
 
+void CMFCApplication1View::OnPowerGamma0()
+{
+	gamma = 0.3;
+	OnBasicgraylevelPower();
+}
+
+
+void CMFCApplication1View::OnPowerGamma1()
+{
+	gamma = 0.5;
+	OnBasicgraylevelPower();
+}
+
+
+void CMFCApplication1View::OnPowerGamma2()
+{
+	gamma = 0.7;
+	OnBasicgraylevelPower();
+}
+
+void CMFCApplication1View::OnPowerGamma3()
+{
+	gamma = 1.3;
+	OnBasicgraylevelPower();
+}
+
+
+void CMFCApplication1View::OnPowerGamma4()
+{
+	gamma = 1.7;
+	OnBasicgraylevelPower();
+}
+
+void CMFCApplication1View::OnPowerGamma5()
+{
+	gamma = 3.;
+	OnBasicgraylevelPower();
+}
+
+
+void CMFCApplication1View::OnPowerGamma6()
+{
+	gamma = 4.;
+	OnBasicgraylevelPower();
+}
+
+
+void CMFCApplication1View::OnPowerGamma7()
+{
+	gamma = 5.;
+	OnBasicgraylevelPower();
 }
 
 
@@ -911,40 +1087,6 @@ void CMFCApplication1View::OnBasicgraylevelThreshold()
 	Invalidate(FALSE);
 }
 
-
-void CMFCApplication1View::OnPowerGamma0()
-{
-	gamma = 0.3;
-	OnBasicgraylevelPower();
-}
-
-
-void CMFCApplication1View::OnPowerGamma1()
-{
-	gamma = 0.5;
-	OnBasicgraylevelPower();
-}
-
-
-void CMFCApplication1View::OnPowerGamma2()
-{
-	gamma = 0.7;
-	OnBasicgraylevelPower();
-}
-
-void CMFCApplication1View::OnPowerGamma3()
-{
-	gamma = 1.3;
-	OnBasicgraylevelPower();
-}
-
-
-void CMFCApplication1View::OnPowerGamma4()
-{
-	gamma = 1.5;
-	OnBasicgraylevelPower();
-}
-
 void CMFCApplication1View::OnBasicgraylevelSolarizing()
 {
 	OnHistogramEqualization();
@@ -971,5 +1113,645 @@ void CMFCApplication1View::OnBasicgraylevelSolarizing()
 	}
 }
 
+void CMFCApplication1View::OnColorspaceTest()
+{
+	OnRgbtohsiChange();
+	OnRgbtohsiHsi2rgb();
+	viewType = 3;
+	Invalidate(FALSE);
+}
 
 
+float** mask;
+int size;
+bool rgb_option;
+bool hue_option;
+
+void Mask() {
+	int k = (size - 1) / 2;
+
+	if (!is_color) {
+		intensity = new float*[imgHeight];
+		for (int i = 0;i < imgHeight;i++) {
+			intensity[i] = new float[imgWidth];
+		}
+		for (int i = 0;i < imgHeight;i++) {
+			for (int j = 0;j < imgWidth;j++) {
+
+				float value = 0.; // pixel value
+
+				// Mask loop Start
+				for (int x = 0;x < size;x++) {
+					for (int y = 0;y < size;y++) {
+						int u = x - k;
+						int v = y - k;
+						if (i + u >= 0 && j + v >= 0) {
+							if (i + u < imgHeight && j + v < imgWidth)
+								value = value + rgbBuffer[i + u][j + v].rgbBlue*mask[x][y];
+						}
+							
+					}
+				}
+				// Mask loop End
+				intensity[i][j] = value;
+			}
+		}
+	}
+	else {
+		rgb_red = new float*[imgHeight];
+		rgb_green = new float*[imgHeight];
+		rgb_blue = new float*[imgHeight];
+		for (int i = 0;i < imgHeight;i++) {
+			rgb_red[i] = new float[imgWidth];
+			rgb_green[i] = new float[imgWidth];
+			rgb_blue[i] = new float[imgWidth];
+		}
+		for (int i = 0;i < imgHeight;i++) {
+			for (int j = 0;j < imgWidth;j++) {
+
+				float value = 0.; // pixel value
+				float value2 = 0;
+				float value3 = 0;
+								  // Mask loop Start
+				for (int x = 0;x < size;x++) {
+					for (int y = 0;y < size;y++) {
+						int u = x - k;
+						int v = y - k;
+						if (i + u >= 0 && j + v >= 0) {
+							if (i + u < imgHeight && j + v < imgWidth) {
+								value = value + rgbBuffer[i + u][j + v].rgbRed*mask[x][y];
+								value2 = value2 + rgbBuffer[i + u][j + v].rgbGreen*mask[x][y];
+								value3 = value3 + rgbBuffer[i + u][j + v].rgbBlue*mask[x][y];
+							}
+						}
+
+					}
+				}
+				// Mask loop End
+				rgb_red[i][j] = max(0,min(255,value));
+				rgb_green[i][j] = max(0,min(255,value2));
+				rgb_blue[i][j] = max(0,min(255,value3));
+			}
+		}
+	}
+
+}
+
+void CMFCApplication1View::OnMean3()
+{
+	/*if (mask) {
+		for (int i = 0;i < size ;i++) {
+			delete[] mask[i];
+		}
+		delete[] mask;
+	}*/
+
+	mask = new float*[3];
+	for (int i = 0;i < 3;i++) {
+		mask[i] = new float[3];
+	}
+
+	for (int i = 0;i < 3;i++) {
+		for (int j = 0;j < 3;j++) {
+			mask[i][j] = 0.11;
+		}
+	}
+	size = 3;
+	Mask();
+	if (!is_color) {
+		viewType = 4;
+		Invalidate(FALSE);
+	}
+	else {
+		viewType = 3;
+		Invalidate(FALSE);
+	}
+}
+
+void CMFCApplication1View::OnMean5()
+{
+	if (mask) {
+		for (int i = 0;i < size;i++) {
+			delete[] mask[i];
+		}
+		delete[] mask;
+	}
+
+	mask = new float*[5];
+	for (int i = 0;i < 5;i++) {
+		mask[i] = new float[5];
+	}
+
+	for (int i = 0;i < 5;i++) {
+		for (int j = 0;j < 5;j++) {
+			mask[i][j] = 0.04;
+		}
+	}
+	size = 5;
+	Mask();
+	if (!is_color) {
+		viewType = 4;
+		Invalidate(FALSE);
+	}
+	else {
+		viewType = 3;
+		Invalidate(FALSE);
+	}
+}
+
+
+void CMFCApplication1View::OnMean7()
+{
+	if (mask) {
+		for (int i = 0;i < size;i++) {
+			delete[] mask[i];
+		}
+		delete[] mask;
+	}
+
+	mask = new float*[7];
+	for (int i = 0;i < 7;i++) {
+		mask[i] = new float[7];
+	}
+
+	for (int i = 0;i < 7;i++) {
+		for (int j = 0;j < 7;j++) {
+			mask[i][j] = 0.02;
+		}
+	}
+	size = 7;
+	Mask();
+	if (!is_color) {
+		viewType = 4;
+		Invalidate(FALSE);
+	}
+	else {
+		viewType = 3;
+		Invalidate(FALSE);
+	}
+}
+
+void CMFCApplication1View::OnGaussian3()
+{
+	/*if (mask) {
+		for (int i = 0;i < size;i++) {
+			delete[] mask[i];
+		}
+		delete[] mask;
+	}*/
+	mask = new float*[3];
+	for (int i = 0;i < 3;i++) {
+		mask[i] = new float[3];
+	}
+
+	for (int i = 0;i < 3;i++) {
+		for (int j = 0;j < 3;j++) {
+			if (i != 1 && j != 1)
+				mask[i][j] = 0.0625;
+			else if (i != j)
+				mask[i][j] = 0.125;
+			else
+				mask[i][j] = 0.25;
+		}
+	}
+	size = 3;
+	Mask();
+	if (!is_color) {
+		viewType = 4;
+		Invalidate(FALSE);
+	}
+	else {
+		viewType = 3;
+		Invalidate(FALSE);
+	}
+}
+
+void CMFCApplication1View::OnGaussian5()
+{
+	/*if (mask) {
+		for (int i = 0;i < size;i++) {
+			delete[] mask[i];
+		}
+		delete[] mask;
+	}*/
+	mask = new float*[5];
+	for (int i = 0;i < 5;i++) {
+		mask[i] = new float[5];
+	}
+
+	for (int i = 0;i < 5;i++) {
+		for (int j = 0;j < 5;j++) {
+			double sigma = 1;
+			double d = -((i - 2)*(i - 2) + (j - 2)*(j - 2)) / (2*sigma*sigma);
+			mask[i][j] = exp(d)/(6.28*sigma*sigma);
+		}
+	}
+	size = 5;
+	Mask();
+	if (!is_color) {
+		viewType = 4;
+		Invalidate(FALSE);
+	}
+	else {
+		viewType = 3;
+		Invalidate(FALSE);
+	}
+}
+
+
+void CMFCApplication1View::OnGaussian7()
+{
+	/*if (mask) {
+		for (int i = 0;i < size;i++) {
+			delete[] mask[i];
+		}
+		delete[] mask;
+	}*/
+	mask = new float*[7];
+	for (int i = 0;i < 7;i++) {
+		mask[i] = new float[7];
+	}
+
+	for (int i = 0;i < 7;i++) {
+		for (int j = 0;j < 7;j++) {
+			double sigma = 1.3;
+			double d = -((i - 2)*(i - 2) + (j - 2)*(j - 2)) / (2 * sigma*sigma);
+			mask[i][j] = exp(d) / (6.28*sigma*sigma);
+		}
+	}
+	size = 7;
+	Mask();
+	if (!is_color) {
+		viewType = 4;
+		Invalidate(FALSE);
+	}
+	else {
+		viewType = 3;
+		Invalidate(FALSE);
+	}
+}
+
+void quick_sort(float *data, int start, int end) {
+	if (start >= end) { // 원소가 1개인 경우 
+		return; 
+	} 
+	int pivot = start; 
+	int i = pivot + 1; 
+	// 왼쪽 출발 지점 
+	int j = end; 
+	// 오른쪽 출발 지점 
+	int temp; while(i <= j){ 
+		// 포인터가 엇갈릴때까지 반복 
+		while(i <= end && data[i] <= data[pivot])
+		{ i++; } 
+		while(j > start && data[j] >= data[pivot]){ j--; } 
+		if(i > j){ 
+			// 엇갈림 
+			temp = data[j]; 
+			data[j] = data[pivot];
+			data[pivot] = temp; 
+		}else{ 
+			// i번째와 j번째를 스왑 
+			temp = data[i]; 
+			data[i] = data[j]; 
+			data[j] = temp; } } 
+	// 분할 계산 
+	quick_sort(data, start, j - 1); 
+	quick_sort(data, j + 1, end); 
+}
+
+void median() {
+	int k = (size - 1) / 2;
+
+	intensity = new float*[imgHeight];
+	for (int i = 0;i < imgHeight;i++) {
+		intensity[i] = new float[imgWidth];
+	}
+
+	if (!is_color) {
+		for (int i = k;i < imgHeight-k;i++) {
+			for (int j = k;j < imgWidth-k;j++){
+				float list[50];
+				int idx = 0;
+				for (int x = 0;x < size;x++) {
+					for (int y = 0;y < size;y++) {
+						int u = x - k;
+						int v = y - k;
+						if (mask[x][y])
+							list[idx] = rgbBuffer[i + u][j + v].rgbBlue;idx += 1;						
+					}
+				}
+				
+				quick_sort(list, 0, idx - 1);
+				float value = list[k];
+					
+
+				// Mask loop End
+				intensity[i][j] = value;
+			}
+		}
+	}
+	else {
+		if (hue_option) {
+			for (int i = k;i < imgHeight - k;i++) {
+				for (int j = k;j < imgWidth - k;j++) {
+					float list[50];
+					int idx = 0;
+					for (int x = 0;x < size;x++) {
+						for (int y = 0;y < size;y++) {
+							int u = x - k;
+							int v = y - k;
+							if (mask[x][y])
+								list[idx] = hueBuffer[i + u][j + v]*10;idx += 1;
+						}
+					}
+
+					quick_sort(list, 0, idx - 1);
+					float value = list[k]/10;
+
+
+					// Mask loop End
+					intensity[i][j] = value;
+				}
+			}
+			hueBuffer = intensity;
+		}
+		else {
+			if (rgb_option) {
+				rgb_red = new float*[imgHeight];
+				rgb_green = new float*[imgHeight];
+				rgb_blue = new float*[imgHeight];
+				for (int i = 0;i < imgHeight;i++) {
+					rgb_red[i] = new float[imgWidth];
+					rgb_green[i] = new float[imgWidth];
+					rgb_blue[i] = new float[imgWidth];
+				}
+				for (int i = k;i < imgHeight - k;i++) {
+					for (int j = k;j < imgWidth - k;j++) {
+						float list[50];
+						float list2[50];
+						float list3[50];
+						int idx = 0;
+						int idx2 = 0;
+						int idx3 = 0;
+						for (int x = 0;x < size;x++) {
+							for (int y = 0;y < size;y++) {
+								int u = x - k;
+								int v = y - k;
+								if (mask[x][y]) {
+									list[idx] = rgbBuffer[i + u][j + v].rgbRed;idx += 1;
+									list2[idx2] = rgbBuffer[i + u][j + v].rgbGreen;idx2 += 1;
+									list3[idx3] = rgbBuffer[i + u][j + v].rgbBlue;idx3 += 1;
+								}
+							}
+						}
+
+						quick_sort(list, 0, idx - 1);
+						quick_sort(list2, 0, idx2 - 1);
+						quick_sort(list3, 0, idx3 - 1);
+						float value = list[k];
+						float value2 = list2[k];
+						float value3 = list3[k];
+
+
+						// Mask loop End
+						rgb_red[i][j] = value;
+						rgb_green[i][j] = value2;
+						rgb_blue[i][j] = value3;
+					}
+				}
+			}
+			else {
+				for (int i = k;i < imgHeight - k;i++) {
+					for (int j = k;j < imgWidth - k;j++) {
+						float list[50];
+						int idx = 0;
+						for (int x = 0;x < size;x++) {
+							for (int y = 0;y < size;y++) {
+								int u = x - k;
+								int v = y - k;
+								if (mask[x][y])
+									list[idx] = intenBuffer[i + u][j + v]*255;idx += 1;
+							}
+						}
+
+						quick_sort(list, 0, idx - 1);
+						float value = list[k]/255;
+
+
+						// Mask loop End
+						intensity[i][j] = value;
+					}
+				}
+				intenBuffer = intensity;
+			}
+		}
+	}
+}
+
+void CMFCApplication1View::OnSize3()
+{
+	size = 3;
+}
+
+
+void CMFCApplication1View::OnSize5()
+{
+	size = 5;
+}
+
+
+void CMFCApplication1View::OnSize7()
+{
+	size = 7;
+}
+
+void CMFCApplication1View::OnShapeBlock()
+{
+	
+	mask = new float*[size];
+	for (int i = 0;i < size;i++) {
+		mask[i] = new float[size];
+	}
+
+	for (int i = 0;i < size;i++) {
+		for (int j = 0;j < size;j++) {
+			mask[i][j] = 1;
+		}
+	}
+}
+
+void CMFCApplication1View::OnShapeCross()
+{
+	
+}
+
+void CMFCApplication1View::OnShapeDiamond()
+{
+	
+}
+
+void CMFCApplication1View::OnShapeXshape()
+{
+	
+}
+
+void CMFCApplication1View::OnMedianProcess()
+{
+	median();
+	viewType = 4;
+	Invalidate(FALSE);
+}
+
+void CMFCApplication1View::OnColoroptionIntensity()
+{
+	hue_option = FALSE;
+	rgb_option = FALSE;
+	OnRgbtohsiChange();
+	median();
+	OnRgbtohsiHsi2rgb();
+	viewType = 3;
+	Invalidate(FALSE);
+}
+
+void CMFCApplication1View::OnColoroptionRgb()
+{
+	hue_option = FALSE;
+	rgb_option = TRUE;
+	median();
+	viewType = 3;
+	Invalidate(FALSE);
+}
+
+
+void CMFCApplication1View::OnColorprocessHsi()
+{
+	hue_option = TRUE;
+	OnRgbtohsiChange();
+	median();
+	OnRgbtohsiHsi2rgb();
+	viewType = 3;
+	Invalidate(FALSE);
+}
+
+
+void CMFCApplication1View::OnMaskHB12()
+{
+	float a = 1.2;
+
+	mask = new float*[3];
+	for (int i = 0;i < 3;i++) {
+		mask[i] = new float[3];
+	}
+	
+	for (int i = 0;i < 3;i++) {
+		for (int j = 0;j < 3;j++) {
+			if (i == 1 && j == 1)
+				mask[i][j] = a + 8;
+			else
+				mask[i][j] = -1;
+		}
+	}
+	size = 3;
+	Mask();
+	if (!is_color) {
+		viewType = 4;
+		Invalidate(FALSE);
+	}
+	else {
+		viewType = 3;
+		Invalidate(FALSE);
+	}
+}
+
+void CMFCApplication1View::OnMorphologyDilation()
+{
+	int k = (size - 1) / 2;
+	if (!is_color) {
+
+		intensity = new float*[imgHeight];
+		for (int i = 0;i < imgHeight;i++) {
+			intensity[i] = new float[imgWidth];
+		}
+
+		for (int i = k;i < imgHeight - k;i++) {
+			for (int j = k;j < imgWidth - k;j++) {
+				float list[50];
+				int idx = 0;
+				for (int x = 0;x < size;x++) {
+					for (int y = 0;y < size;y++) {
+						int u = x - k;
+						int v = y - k;
+						if (mask[x][y])
+							list[idx] = rgbBuffer[i + u][j + v].rgbBlue;idx += 1;
+					}
+				}
+
+				quick_sort(list, 0, idx - 1);
+				float value = list[idx - 1];
+				
+				// Mask loop End
+				intensity[i][j] = value;
+			}
+		}
+		viewType = 4;
+		Invalidate(FALSE);
+	}
+}
+
+
+void CMFCApplication1View::OnMorphologyErosion()
+{
+	int k = (size - 1) / 2;
+	if (!is_color) {
+
+		intensity = new float*[imgHeight];
+		for (int i = 0;i < imgHeight;i++) {
+			intensity[i] = new float[imgWidth];
+		}
+
+		for (int i = k;i < imgHeight - k;i++) {
+			for (int j = k;j < imgWidth - k;j++) {
+				float list[50];
+				int idx = 0;
+				for (int x = 0;x < size;x++) {
+					for (int y = 0;y < size;y++) {
+						int u = x - k;
+						int v = y - k;
+						if (mask[x][y])
+							list[idx] = rgbBuffer[i + u][j + v].rgbBlue;idx += 1;
+					}
+				}
+
+				quick_sort(list, 0, idx - 1);
+				float value = list[0];
+
+				// Mask loop End
+				intensity[i][j] = value;
+			}
+		}
+		viewType = 4;
+		Invalidate(FALSE);
+	}
+}
+
+
+void CMFCApplication1View::OnStructureBlock()
+{
+	mask = new float*[size];
+	for (int i = 0;i < size;i++) {
+		mask[i] = new float[size];
+	}
+
+	for (int i = 0;i < size;i++) {
+		for (int j = 0;j < size;j++) {
+			mask[i][j] = 1;
+		}
+	}
+}
+
+
+void CMFCApplication1View::OnSize4()
+{
+	size = 3;
+}
