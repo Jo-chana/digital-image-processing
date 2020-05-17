@@ -75,6 +75,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
+    <IncludePath>C:\opencv\build\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\opencv\build\x86\vc12\lib;C:\opencv\build\x86\vc12\staticlib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
@@ -92,10 +94,11 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>C:\opencv\build\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>Jpeglib2.lib;legacy_stdio_definitions.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Jpeglib2.lib;legacy_stdio_definitions.lib;opencv_ts300.lib;opencv_world300d.lib</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>LIBCD.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
     </Link>
     <Midl>
@@ -187,6 +190,7 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ImageProcess.h" />
     <ClInclude Include="Jpegfile.h" />
     <ClInclude Include="MainFrm.h" />
     <ClInclude Include="MFCApplication1.h" />
@@ -213,6 +217,9 @@
     <ResourceCompile Include="MFCApplication1.rc" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\..\..\..\..\..\opencv\build\x86\vc12\bin\opencv_ffmpeg300.dll" />
+    <None Include="..\..\..\..\..\..\..\opencv\build\x86\vc12\bin\opencv_world300.dll" />
+    <None Include="..\..\..\..\..\..\..\opencv\build\x86\vc12\bin\opencv_world300d.dll" />
     <None Include="res\MFCApplication1.rc2" />
   </ItemGroup>
   <ItemGroup>

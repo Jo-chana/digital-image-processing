@@ -100,6 +100,21 @@ public:
 	afx_msg void OnMorphologyErosion();
 	afx_msg void OnStructureBlock();
 	afx_msg void OnSize4();
+	afx_msg void OnMask22();
+	afx_msg void OnEdgedetectionSobel();
+	afx_msg void OnEdgedetectionPrewitt();
+	afx_msg void OnEdgedetectionLog();
+	afx_msg void OnLog3();
+	afx_msg void OnLog5();
+	afx_msg void LoG(int,float**);
+	afx_msg void EdgeOperator();
+	afx_msg void Mask();
+	afx_msg void OnLog7();
+	afx_msg void OnLog9();
+	afx_msg void OnLog11();
+	afx_msg void OnLog15();
+	afx_msg void OnLogMultiple();
+	afx_msg void OnEdgedetectionCanny();
 };
 
 #ifndef _DEBUG  // debug version in MFCApplication1View.cpp

@@ -42,6 +42,9 @@
     <ClInclude Include="Jpegfile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ImageProcess.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MFCApplication1.cpp">
@@ -71,6 +74,15 @@
   <ItemGroup>
     <None Include="res\MFCApplication1.rc2">
       <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\..\..\..\..\..\..\opencv\build\x86\vc12\bin\opencv_ffmpeg300.dll">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\..\..\..\..\..\opencv\build\x86\vc12\bin\opencv_world300.dll">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\..\..\..\..\..\opencv\build\x86\vc12\bin\opencv_world300d.dll">
+      <Filter>Source Files</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

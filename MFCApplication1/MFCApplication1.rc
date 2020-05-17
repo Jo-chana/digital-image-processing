@@ -230,6 +230,7 @@ BEGIN
                 POPUP "Mask2"
                 BEGIN
                     MENUITEM "1.2",                         ID_MASK2_1
+                    MENUITEM "1.5",                         ID_MASK2_2
                 END
             END
         END
@@ -269,7 +270,25 @@ BEGIN
             MENUITEM "Dilation",                    ID_MORPHOLOGY_DILATION
             MENUITEM "Erosion",                     ID_MORPHOLOGY_EROSION
         END
+        POPUP "Edge Detection"
+        BEGIN
+            MENUITEM "Robert",                      ID_EDGEDETECTION_ROBERT
+            MENUITEM "Prewitt",                     ID_EDGEDETECTION_PREWITT
+            MENUITEM "Sobel",                       ID_EDGEDETECTION_SOBEL
+            POPUP "LoG"
+            BEGIN
+                MENUITEM "3 * 3",                       ID_LOG_3
+                MENUITEM "5 * 5",                       ID_LOG_5
+                MENUITEM "7 * 7",                       ID_LOG_7
+                MENUITEM "9 * 9",                       ID_LOG_9
+                MENUITEM "11 * 11",                     ID_LOG_11
+                MENUITEM "15 * 15",                     ID_LOG_15
+                MENUITEM "Multiple(3/5/7)",             ID_LOG_MULTIPLE
+            END
+            MENUITEM "Canny",                       ID_EDGEDETECTION_CANNY
+        END
     END
+    MENUITEM "Frame processing",            ID_FRAMEPROCESSING
 END
 
 

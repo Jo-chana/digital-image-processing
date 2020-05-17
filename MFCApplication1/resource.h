@@ -99,13 +99,30 @@
 #define ID_STRUCTURE_BLOCK              32861
 #define ID_MORPHOLOGY_SIZE              32862
 #define ID_SIZE_4                       32863
+#define ID_AREAPROCESSING_EDGEDETECTION 32864
+#define ID_EDGEDETECTION_HOMOGENEITY    32865
+#define ID_EDGEDETECTION_DIFFERENCE     32866
+#define ID_EDGEDETECTION_ROBERT         32867
+#define ID_EDGEDETECTION_PREWITT        32868
+#define ID_EDGEDETECTION_SOBEL          32869
+#define ID_MASK2_2                      32870
+#define ID_EDGEDETECTION_LOG            32871
+#define ID_LOG_3                        32872
+#define ID_LOG_5                        32873
+#define ID_FRAMEPROCESSING              32874
+#define ID_LOG_7                        32875
+#define ID_LOG_9                        32876
+#define ID_LOG_11                       32877
+#define ID_LOG_15                       32878
+#define ID_LOG_MULTIPLE                 32879
+#define ID_EDGEDETECTION_CANNY          32880
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        311
-#define _APS_NEXT_COMMAND_VALUE         32864
+#define _APS_NEXT_COMMAND_VALUE         32881
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           310
 #endif

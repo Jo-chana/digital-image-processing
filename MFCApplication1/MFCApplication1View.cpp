@@ -18,11 +18,14 @@
 
 #pragma once
 #include "Jpegfile.h"
+
+#include <iostream>
+
+#include "opencv2/opencv.hpp"
+
 #define _USE_MATH_DEFINES
 #include <cmath>
-//#include "opencv2/opencv.hpp"
-//using namespace cv;
-
+#include <stdlib.h>
 
 // CMFCApplication1View
 
@@ -89,6 +92,17 @@ BEGIN_MESSAGE_MAP(CMFCApplication1View, CView)
 	ON_COMMAND(ID_MORPHOLOGY_EROSION, &CMFCApplication1View::OnMorphologyErosion)
 	ON_COMMAND(ID_STRUCTURE_BLOCK, &CMFCApplication1View::OnStructureBlock)
 	ON_COMMAND(ID_SIZE_4, &CMFCApplication1View::OnSize4)
+	ON_COMMAND(ID_MASK2_2, &CMFCApplication1View::OnMask22)
+	ON_COMMAND(ID_EDGEDETECTION_SOBEL, &CMFCApplication1View::OnEdgedetectionSobel)
+	ON_COMMAND(ID_EDGEDETECTION_PREWITT, &CMFCApplication1View::OnEdgedetectionPrewitt)
+	ON_COMMAND(ID_LOG_3, &CMFCApplication1View::OnLog3)
+	ON_COMMAND(ID_LOG_5, &CMFCApplication1View::OnLog5)
+	ON_COMMAND(ID_LOG_7, &CMFCApplication1View::OnLog7)
+	ON_COMMAND(ID_LOG_9, &CMFCApplication1View::OnLog9)
+	ON_COMMAND(ID_LOG_11, &CMFCApplication1View::OnLog11)
+	ON_COMMAND(ID_LOG_15, &CMFCApplication1View::OnLog15)
+	ON_COMMAND(ID_LOG_MULTIPLE, &CMFCApplication1View::OnLogMultiple)
+	ON_COMMAND(ID_EDGEDETECTION_CANNY, &CMFCApplication1View::OnEdgedetectionCanny)
 END_MESSAGE_MAP()
 
 
@@ -174,6 +188,8 @@ void CMFCApplication1View::OnDraw(CDC* pDC)
 					p.x = j + imgWidth + 10;
 					p.y = i;
 					pDC->SetPixel(p, RGB(intensity[i][j], intensity[i][j], intensity[i][j]));
+					if (intensity[i][j]!=255&&intensity[i][j]!=0) {
+					}
 				}
 				
 			}
@@ -190,6 +206,8 @@ void CMFCApplication1View::OnDraw(CDC* pDC)
 				pDC->Rectangle(imgWidth + (i * 2), imgHeight - histogram[i], imgWidth + 2 + (i * 2), imgHeight);
 			}
 		}
+		std::cout << "화면 출력 완료 viewType: ";
+		std::cout << viewType << std::endl;
 	}
 }
 
@@ -236,7 +254,7 @@ CMFCApplication1Doc* CMFCApplication1View::GetDocument() const // non-debug vers
 
 // CMFCApplication1View message handlers
 
-
+CString path;
 void CMFCApplication1View::OnImageBmp()
 {
 	
@@ -245,6 +263,7 @@ void CMFCApplication1View::OnImageBmp()
 	if (IDOK != dlg.DoModal())
 		return;
 	CString filename = dlg.GetPathName();
+	path = filename;
 	if(rgbBuffer != NULL){//이미 할당된 경우 메모리 헤제
 		for (int i = 0;i < imgHeight;i++)
 			delete [] rgbBuffer[i];
@@ -319,6 +338,7 @@ void CMFCApplication1View::OnBmpBlackwhite()
 	if (IDOK != dlg.DoModal())
 		return;
 	CString filename = dlg.GetPathName();
+	path = filename;
 	if (rgbBuffer != NULL) {//이미 할당된 경우 메모리 헤제
 		for (int i = 0;i < imgHeight;i++)
 			delete[] rgbBuffer[i];
@@ -409,6 +429,7 @@ void CMFCApplication1View::OnImageJepg()
 	CFileDialog dlg(TRUE, ".jpg", NULL, NULL, "Jpeg File(*.jpg)|*jpg||");
 	if (IDOK != dlg.DoModal()) return;
 	CString filename = dlg.GetPathName();
+	path = filename;
 
 	//BMP 로드와 마찬가지로 rgbBuffer가 NULL이 아닌 경우 메모리 헤제 코드 추가하기
 	if (rgbBuffer != NULL) {//이미 할당된 경우 메모리 헤제
@@ -496,13 +517,14 @@ void CMFCApplication1View::OnImageloadNewimagesave()
 
 void CMFCApplication1View::OnImageloadAvi()
 {
-	/*CFileDialog dlg(TRUE, ".avi", NULL, NULL, "AVI File (*.avi)|*.avi||");
+	/*using namespace cv;*/
+	CFileDialog dlg(TRUE, ".avi", NULL, NULL, "AVI File (*.avi)|*.avi||");
 	if (IDOK != dlg.DoModal())
 		return;
 
 	CString cfilename = dlg.GetPathName();
 	CT2CA strAtl(cfilename);
-	String filename(strAtl);
+	cv::String filename(strAtl);
 
 	cv::VideoCapture Capture;
 	Capture.open(filename);
@@ -511,15 +533,15 @@ void CMFCApplication1View::OnImageloadAvi()
 		AfxMessageBox("Error Video");
 
 	for (;;) {
-		Mat frame;
+		cv::Mat frame;
 		Capture >> frame;
 		if (frame.data == nullptr)
 			break;
 		imshow("video", frame);
-		if (waitkey(30) >= 0)
+		if (cv::waitKey(30) >= 0)
 			break;
 	}
-	AfxMessageBox("Completed");*/
+	AfxMessageBox("Completed");
 
 }
 
@@ -639,7 +661,7 @@ void CMFCApplication1View::OnRgbtohsiHsi2rgb() // 함수 재사용 목적으로 작성
 
 				}
 			}
-
+#define min(a, b) (((a) < (b)) ? (a) : (b))
 			R = min(255, 255 * 3 * r * I); //255 * 3 * r*I;
 			G = min(255, 255 * 3 * g * I); //255 * 3 * g*I;
 			B = min(255, 255 * 3 * b * I); //255 * 3 * b*I;
@@ -675,6 +697,7 @@ void CMFCApplication1View::OnPointprocessingContraststretching()
 
 void CMFCApplication1View::OnPointprocessingSaturationinjecting()
 {
+#define min(a, b) (((a) < (b)) ? (a) : (b))
 	OnRgbtohsiChange();
 	for (int i = 0;i < imgHeight;i++) {
 		for (int j = 0;j < imgWidth;j++) {
@@ -1059,11 +1082,13 @@ void CMFCApplication1View::OnPowerGamma7()
 
 void CMFCApplication1View::OnBasicgraylevelThreshold()
 {
-	OnHistogramEqualization();
+	//OnHistogramEqualization();
 
-	if (is_color)
-		intensity = intenBuffer;
+	OnRgbtohsiChange();
+	
+	intensity = intenBuffer;
 
+		
 	//평균값 계산
 	float sum = 0; // 총 합
 	float total = 0; // 픽셀 수
@@ -1127,7 +1152,10 @@ int size;
 bool rgb_option;
 bool hue_option;
 
-void Mask() {
+void CMFCApplication1View::Mask() {
+#define min(a, b) (((a) < (b)) ? (a) : (b))
+#define max(a, b) (((a) > (b)) ? (a) : (b))
+
 	int k = (size - 1) / 2;
 
 	if (!is_color) {
@@ -1135,6 +1163,8 @@ void Mask() {
 		for (int i = 0;i < imgHeight;i++) {
 			intensity[i] = new float[imgWidth];
 		}
+		OnRgbtohsiChange();
+		
 		for (int i = 0;i < imgHeight;i++) {
 			for (int j = 0;j < imgWidth;j++) {
 
@@ -1147,7 +1177,7 @@ void Mask() {
 						int v = y - k;
 						if (i + u >= 0 && j + v >= 0) {
 							if (i + u < imgHeight && j + v < imgWidth)
-								value = value + rgbBuffer[i + u][j + v].rgbBlue*mask[x][y];
+								value = value + intenBuffer[i + u][j + v]*255*mask[x][y];
 						}
 							
 					}
@@ -1293,12 +1323,12 @@ void CMFCApplication1View::OnMean7()
 
 void CMFCApplication1View::OnGaussian3()
 {
-	/*if (mask) {
+	if (mask) {
 		for (int i = 0;i < size;i++) {
 			delete[] mask[i];
 		}
 		delete[] mask;
-	}*/
+	}
 	mask = new float*[3];
 	for (int i = 0;i < 3;i++) {
 		mask[i] = new float[3];
@@ -1328,12 +1358,12 @@ void CMFCApplication1View::OnGaussian3()
 
 void CMFCApplication1View::OnGaussian5()
 {
-	/*if (mask) {
+	if (mask) {
 		for (int i = 0;i < size;i++) {
 			delete[] mask[i];
 		}
 		delete[] mask;
-	}*/
+	}
 	mask = new float*[5];
 	for (int i = 0;i < 5;i++) {
 		mask[i] = new float[5];
@@ -1400,7 +1430,7 @@ void quick_sort(float *data, int start, int end) {
 	// 왼쪽 출발 지점 
 	int j = end; 
 	// 오른쪽 출발 지점 
-	int temp; while(i <= j){ 
+	float temp; while(i <= j){ 
 		// 포인터가 엇갈릴때까지 반복 
 		while(i <= end && data[i] <= data[pivot])
 		{ i++; } 
@@ -1467,14 +1497,18 @@ void median() {
 					}
 
 					quick_sort(list, 0, idx - 1);
-					float value = list[k]/10;
+					float value = list[k]/10.;
 
 
 					// Mask loop End
 					intensity[i][j] = value;
 				}
 			}
-			hueBuffer = intensity;
+			for (int i = 0;i < imgHeight;i++) {
+				for (int j = 0;j < imgWidth;j++) {
+					hueBuffer[i][j] = intensity[i][j];
+				}
+			}
 		}
 		else {
 			if (rgb_option) {
@@ -1626,6 +1660,7 @@ void CMFCApplication1View::OnColoroptionRgb()
 
 void CMFCApplication1View::OnColorprocessHsi()
 {
+	rgb_option = FALSE;
 	hue_option = TRUE;
 	OnRgbtohsiChange();
 	median();
@@ -1644,6 +1679,36 @@ void CMFCApplication1View::OnMaskHB12()
 		mask[i] = new float[3];
 	}
 	
+	for (int i = 0;i < 3;i++) {
+		for (int j = 0;j < 3;j++) {
+			if (i == 1 && j == 1)
+				mask[i][j] = a + 8;
+			else
+				mask[i][j] = -1;
+		}
+	}
+	size = 3;
+	Mask();
+	if (!is_color) {
+		viewType = 4;
+		Invalidate(FALSE);
+	}
+	else {
+		viewType = 3;
+		Invalidate(FALSE);
+	}
+}
+
+
+void CMFCApplication1View::OnMask22()
+{
+	float a = 1.5;
+
+	mask = new float*[3];
+	for (int i = 0;i < 3;i++) {
+		mask[i] = new float[3];
+	}
+
 	for (int i = 0;i < 3;i++) {
 		for (int j = 0;j < 3;j++) {
 			if (i == 1 && j == 1)
@@ -1754,4 +1819,306 @@ void CMFCApplication1View::OnStructureBlock()
 void CMFCApplication1View::OnSize4()
 {
 	size = 3;
+}
+
+
+float** x_mask;
+float** y_mask;
+void CMFCApplication1View::EdgeOperator() {
+	int k = (size - 1) / 2;
+
+	OnRgbtohsiChange();
+	 
+	intensity = new float*[imgHeight];
+	for (int i = 0;i < imgHeight;i++) {
+		intensity[i] = new float[imgWidth];
+	}
+	for (int i = k;i < imgHeight-k;i++) {
+		for (int j = k;j < imgWidth-k;j++) {
+
+			double x_value = 0.; 
+			double y_value = 0.;
+							  // Mask loop Start
+			for (int x = 0;x < size;x++) {
+				for (int y = 0;y < size;y++) {
+					int u = x - k;
+					int v = y - k;
+					y_value += y_mask[x][y] * intenBuffer[i + u][j + v]*255;
+					x_value += x_mask[x][y] * intenBuffer[i + u][j + v]*255;
+					
+				}
+			}
+			// Mask loop End
+			intensity[i][j] = sqrt(x_value*x_value + y_value*y_value);
+			intensity[i][j] = 255 - intensity[i][j];
+		}
+	}
+}
+
+
+void CMFCApplication1View::OnEdgedetectionSobel()
+{
+	size = 3;
+	x_mask = new float*[3];
+	for (int i = 0;i < 3;i++) {
+		x_mask[i] = new float[3];
+	}
+	y_mask = new float*[3];
+	for (int i = 0;i < 3;i++) {
+		y_mask[i] = new float[3];
+	}
+
+	y_mask[2][0] = -1; y_mask[2][2] = -1; x_mask[2][0] = -1; x_mask[0][0] = -1;
+	x_mask[0][2] = 1; x_mask[2][2] = 1; y_mask[0][0] = 1; y_mask[0][2] = 1;
+	x_mask[1][0] = -2; y_mask[2][1] = -2;
+	x_mask[1][2] = 2; y_mask[0][1] = 2;
+	for (int i = 0;i < 3;i++) {
+		for (int j = 0;j < 3;j++) {
+			if (i == 1)
+				y_mask[i][j] = 0;
+			if (j == 1)
+				x_mask[i][j] = 0;
+		}
+	}
+
+	EdgeOperator();
+	viewType = 4;
+	Invalidate(FALSE);
+
+}
+
+
+void CMFCApplication1View::OnEdgedetectionPrewitt()
+{
+	size = 3;
+	x_mask = new float*[3];
+	for (int i = 0;i < 3;i++) {
+		x_mask[i] = new float[3];
+	}
+	y_mask = new float*[3];
+	for (int i = 0;i < 3;i++) {
+		y_mask[i] = new float[3];
+	}
+
+	y_mask[2][0] = -1; y_mask[2][2] = -1; x_mask[2][0] = -1; x_mask[0][0] = -1;
+	x_mask[0][2] = 1; x_mask[2][2] = 1; y_mask[0][0] = 1; y_mask[0][2] = 1;
+	x_mask[1][0] = -1; y_mask[2][1] = -1;
+	x_mask[1][2] = 1; y_mask[0][1] = 1;
+	for (int i = 0;i < 3;i++) {
+		for (int j = 0;j < 3;j++) {
+			if (i == 1)
+				y_mask[i][j] = 0;
+			if (j == 1)
+				x_mask[i][j] = 0;
+		}
+	}
+
+	EdgeOperator();
+	viewType = 4;
+	Invalidate(FALSE);
+}
+
+
+void CMFCApplication1View::LoG(int size, float** filter) { 
+
+	OnRgb2hsiGrayscale();
+
+	int k = (size - 1) / 2;
+	float** intensity_ = new float*[imgHeight];
+	for (int i = 0;i < imgHeight;i++) {
+		intensity_[i] = new float[imgWidth];
+	}
+	int idx = 0;
+	for (int i = k;i < imgHeight - k;i++) {
+		for (int j = k;j < imgWidth - k;j++) {
+
+		    float value = 0;
+			idx++;
+			for (int x = 0;x < size;x++) {
+				for (int y = 0;y < size;y++) {
+					int u = x - k;
+					int v = y - k;
+					if (i + u >= 0 && j + v >= 0) {
+						if (i + u < imgHeight && j + v < imgWidth)
+							value = value + intensity[i + u][j + v]*filter[x][y];
+					}
+				}
+
+			}
+			value = value < 0 ? 0 : 255;
+			intensity_[i][j] = value;
+		}
+	}
+	for (int i = 0;i < imgHeight;i++) {
+		delete[] intensity[i];
+	}
+	intensity = intensity_;
+
+	for (int i = 0;i < size; i++) {
+		delete[] filter[i];
+	}
+	delete[] filter;
+}
+
+float** logFilter(int size, double sigmanum=0) {
+	float** filter = new float*[size];
+	for (int i = 0;i < size;i++) {
+		filter[i] = new float[size];
+	}
+
+	int k = (size - 1) / 2;
+
+	double sigma = sigmanum;
+	if (!sigmanum) 
+		sigma = size / 6.;
+
+	for (int i = 0;i < size;i++) {
+		for (int j = 0;j < size;j++) {
+			double x = i - k;
+			double y = j - k;
+			filter[i][j] = (1 / 3.14*pow(sigma, 4))*(1 - (pow(x, 2) + pow(y, 2)) / (2 * pow(sigma, 2)))*exp(-1 * ((pow(x, 2) + pow(y, 2)) / (2 * pow(sigma, 2))));
+			//filter[i][j] = -1*( x*x + y*y - 2*sigma*sigma ) * exp(-1 * (x*x + y*y) / (2 * sigma*sigma)) / pow(sigma, 4);
+			std::cout << filter[i][j] << " ";
+		}
+		std::cout << std::endl;
+	}
+	return filter;
+
+}
+
+void CMFCApplication1View::OnLog3()
+{
+	/*float** filter = new float*[3];
+	filter[0] = new float[3]{ 0,-1,0 };
+	filter[1] = new float[3]{ -1,4,-1 };
+	filter[2] = new float[3]{ 0,-1,0 };*/
+	float** filter = logFilter(3);
+
+	LoG(3,filter);
+	viewType = 4;
+	Invalidate(FALSE);
+}
+
+
+void CMFCApplication1View::OnLog5()
+{
+	/*float** filter = new float*[5];
+	for (int i = 0;i < 5;i++) {
+		switch (i) {
+		case 0:
+		case 4:
+			filter[i] = new float[5]{ 0,0,-1,0,0 };
+			break;
+		case 1:
+		case 3:
+			filter[i] = new float[5]{ 0,-1,-2,-1,0 };
+			break;
+		case 2:
+			filter[i] = new float[5]{ -1,-2,16,-2,-1 };
+			break;
+		}
+	}*/
+	float** filter = logFilter(5);
+	LoG(5,filter);
+	viewType = 4;
+	Invalidate(FALSE);
+}
+
+
+void CMFCApplication1View::OnLog7()
+{
+	float** filter = logFilter(7);
+	LoG(7, filter);
+	viewType = 4;
+	Invalidate(FALSE);
+}
+
+
+void CMFCApplication1View::OnLog9()
+{
+	float** filter = logFilter(9,1.4);
+	LoG(9, filter);
+	viewType = 4;
+	Invalidate(FALSE);
+}
+
+
+void CMFCApplication1View::OnLog11()
+{
+	float** filter = logFilter(11);
+	LoG(11, filter);
+	viewType = 4;
+	Invalidate(FALSE);
+}
+
+
+void CMFCApplication1View::OnLog15()
+{
+	float** filter = logFilter(15);
+	LoG(15, filter);
+	viewType = 4;
+	Invalidate(FALSE);
+}
+
+
+
+void CMFCApplication1View::OnLogMultiple()
+{
+	float** log3;
+	float** log5;
+	float** log7;
+	float** log11;
+	float** log15;
+
+	LoG(3, logFilter(3));
+	log3 = intensity;
+
+	/*LoG(5, logFilter(5));
+	log5 = intensity;*/
+
+	LoG(7, logFilter(7));
+	log7 = intensity;
+
+	/*LoG(11, logFilter(11));
+	log11 = intensity;*/
+
+	LoG(15, logFilter(15));
+	log15 = intensity;
+
+	for (int i = 0;i < imgHeight;i++) {
+		for (int j = 0;j < imgWidth;j++) {
+			float value = (log3[i][j] + /*log5[i][j] +*/ log7[i][j] + /*log11[i][j] +*/ log15[i][j]) / 3;
+			value = value < 50 ? 0 : 255;
+			intensity[i][j] = value;
+		}
+	}
+	viewType = 4;
+	Invalidate(FALSE);
+
+
+}
+
+
+void CMFCApplication1View::OnEdgedetectionCanny()
+{ 
+	std::string imgpath;
+	imgpath = path;
+	std::cout << imgpath;
+	cv::Mat image = cv::Mat(imgHeight, imgWidth, CV_8U);
+	image = cv::imread(imgpath);
+
+	cv::Mat out1, out2;
+	cv::Canny(image, out1,150, 255,3);
+	cv::Canny(image, out2, 150, 255,3,TRUE);
+
+	cv::bitwise_not(out1, out1);
+	cv::bitwise_not(out2, out2);
+
+	cv::Mat logout;
+	
+	
+	cv::imshow("out1", out1);
+	cv::imshow("out2", out2);
+	
+
 }
