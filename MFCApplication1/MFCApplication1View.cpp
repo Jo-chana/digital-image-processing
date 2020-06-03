@@ -103,6 +103,8 @@ BEGIN_MESSAGE_MAP(CMFCApplication1View, CView)
 	ON_COMMAND(ID_LOG_15, &CMFCApplication1View::OnLog15)
 	ON_COMMAND(ID_LOG_MULTIPLE, &CMFCApplication1View::OnLogMultiple)
 	ON_COMMAND(ID_EDGEDETECTION_CANNY, &CMFCApplication1View::OnEdgedetectionCanny)
+	ON_COMMAND(ID_LOG_17, &CMFCApplication1View::OnLog17)
+	ON_COMMAND(ID_LOG_19, &CMFCApplication1View::OnLog19)
 END_MESSAGE_MAP()
 
 
@@ -188,8 +190,16 @@ void CMFCApplication1View::OnDraw(CDC* pDC)
 					p.x = j + imgWidth + 10;
 					p.y = i;
 					pDC->SetPixel(p, RGB(intensity[i][j], intensity[i][j], intensity[i][j]));
-					if (intensity[i][j]!=255&&intensity[i][j]!=0) {
-					}
+				}
+				if (viewType == 6) {
+					p.x = j + imgWidth + imgWidth + 20;
+					p.y = i;
+					pDC->SetPixel(p, RGB(intensity[i][j], intensity[i][j], intensity[i][j]));
+				}
+				if (viewType == 7) {
+					p.x = j + 3 * imgWidth + 30;
+					p.y = i;
+					pDC->SetPixel(p, RGB(intensity[i][j], intensity[i][j], intensity[i][j]));
 				}
 				
 			}
@@ -1882,7 +1892,7 @@ void CMFCApplication1View::OnEdgedetectionSobel()
 	}
 
 	EdgeOperator();
-	viewType = 4;
+	viewType = 6;
 	Invalidate(FALSE);
 
 }
@@ -1918,8 +1928,9 @@ void CMFCApplication1View::OnEdgedetectionPrewitt()
 	Invalidate(FALSE);
 }
 
+float ** zeroCrossing(float** image, int height, int width, double thresh=0.01);
 
-void CMFCApplication1View::LoG(int size, float** filter) { 
+void CMFCApplication1View::LoG(int size, float** filter, double thresh = 1) { 
 
 	OnRgb2hsiGrayscale();
 
@@ -1945,19 +1956,45 @@ void CMFCApplication1View::LoG(int size, float** filter) {
 				}
 
 			}
-			value = value < 0 ? 0 : 255;
+			//std::cout << value << ",";
+			//value = value <= 0 ? 0 : 1;
 			intensity_[i][j] = value;
 		}
+		//std::cout << std::endl;
 	}
 	for (int i = 0;i < imgHeight;i++) {
 		delete[] intensity[i];
 	}
-	intensity = intensity_;
+	delete[] intensity;
 
-	for (int i = 0;i < size; i++) {
-		delete[] filter[i];
+	intensity = zeroCrossing(intensity_,imgHeight, imgWidth,thresh);
+
+	
+}
+
+float ** zeroCrossing(float** image,int height, int width, double thresh) {
+	float** result = new float*[height];
+	for (int i = 0;i < height;i++) {
+		result[i] = new float[width];
 	}
-	delete[] filter;
+	for (int i = 1;i < height-1;i++) {
+		for (int j = 1;j < width-1;j++) {
+			result[i][j] = 255;
+			int n = 0;
+			float neighbor[4][2] = { {image[i][j - 1],image[i][j + 1]},
+			{image[i - 1][j],image[i + 1][j]},{image[i + 1][j + 1],image[i - 1][j - 1]},{image[i + 1][j - 1],image[i - 1][j + 1]} };
+		
+			for (int x = 0;x < 4;x++) {
+				if (neighbor[x][0] * neighbor[x][1] < 0) {
+					if (abs(neighbor[x][0] - neighbor[x][1]) >= thresh)
+						n++;
+				}
+			}
+			if (n >= 2)
+				result[i][j] = 0;
+		}
+	}
+	return result;
 }
 
 float** logFilter(int size, double sigmanum=0) {
@@ -1969,15 +2006,15 @@ float** logFilter(int size, double sigmanum=0) {
 	int k = (size - 1) / 2;
 
 	double sigma = sigmanum;
-	if (!sigmanum) 
-		sigma = size / 6.;
+	if (!sigmanum)
+		sigma = size / 6;
 
 	for (int i = 0;i < size;i++) {
 		for (int j = 0;j < size;j++) {
 			double x = i - k;
 			double y = j - k;
-			filter[i][j] = (1 / 3.14*pow(sigma, 4))*(1 - (pow(x, 2) + pow(y, 2)) / (2 * pow(sigma, 2)))*exp(-1 * ((pow(x, 2) + pow(y, 2)) / (2 * pow(sigma, 2))));
-			//filter[i][j] = -1*( x*x + y*y - 2*sigma*sigma ) * exp(-1 * (x*x + y*y) / (2 * sigma*sigma)) / pow(sigma, 4);
+			double g = -(x*x + y*y) / (2.*pow(sigma, 2));
+			filter[i][j] = -(1. + g)*exp(g) / (3.14*pow(sigma, 4));
 			std::cout << filter[i][j] << " ";
 		}
 		std::cout << std::endl;
@@ -1994,7 +2031,8 @@ void CMFCApplication1View::OnLog3()
 	filter[2] = new float[3]{ 0,-1,0 };*/
 	float** filter = logFilter(3);
 
-	LoG(3,filter);
+	LoG(3,filter,0);
+
 	viewType = 4;
 	Invalidate(FALSE);
 }
@@ -2019,7 +2057,7 @@ void CMFCApplication1View::OnLog5()
 		}
 	}*/
 	float** filter = logFilter(5);
-	LoG(5,filter);
+	LoG(5,filter,0.1);
 	viewType = 4;
 	Invalidate(FALSE);
 }
@@ -2036,9 +2074,16 @@ void CMFCApplication1View::OnLog7()
 
 void CMFCApplication1View::OnLog9()
 {
-	float** filter = logFilter(9,1.4);
-	LoG(9, filter);
-	viewType = 4;
+	/*float** filter = new float*[9];
+	filter[0] =filter[8]= new float[9]{ 0, 1, 1, 2, 2, 2, 1, 1, 0 };
+	filter[1] = filter[7]=new float[9]{ 1, 2, 4, 5, 5, 5, 4, 2, 1 };
+	filter[2] = filter[6] = new float[9]{1, 4, 5, 3, 0, 3, 5, 4, 1};
+	filter[3] = filter[5] = new float[9]{2, 5, 3, -12, -24, -12, 3, 5, 2};
+	filter[4] = new float[9]{2, 5, 0, -24, -40, -24, 0, 5, 2};*/
+	
+	float** filter = logFilter(9);
+	LoG(9, filter,1.5);
+	viewType = 6;
 	Invalidate(FALSE);
 }
 
@@ -2047,7 +2092,7 @@ void CMFCApplication1View::OnLog11()
 {
 	float** filter = logFilter(11);
 	LoG(11, filter);
-	viewType = 4;
+	viewType = 6;
 	Invalidate(FALSE);
 }
 
@@ -2056,7 +2101,24 @@ void CMFCApplication1View::OnLog15()
 {
 	float** filter = logFilter(15);
 	LoG(15, filter);
-	viewType = 4;
+	viewType = 6;
+	Invalidate(FALSE);
+}
+
+void CMFCApplication1View::OnLog17()
+{
+	float** filter = logFilter(17);
+	LoG(17, filter);
+	viewType = 7;
+	Invalidate(FALSE);
+}
+
+
+void CMFCApplication1View::OnLog19()
+{
+	float** filter = logFilter(19);
+	LoG(19, filter);
+	viewType = 7;
 	Invalidate(FALSE);
 }
 
@@ -2107,18 +2169,17 @@ void CMFCApplication1View::OnEdgedetectionCanny()
 	cv::Mat image = cv::Mat(imgHeight, imgWidth, CV_8U);
 	image = cv::imread(imgpath);
 
-	cv::Mat out1, out2;
-	cv::Canny(image, out1,150, 255,3);
-	cv::Canny(image, out2, 150, 255,3,TRUE);
-
+	cv::Mat out1, out2, out3;
+	cv::Canny(image, out1, 150, 255,3);
+	cv::Canny(image, out2, 170, 250, 3);
+	cv::Canny(image, out3, 100, 200, 3);
 	cv::bitwise_not(out1, out1);
 	cv::bitwise_not(out2, out2);
-
-	cv::Mat logout;
+	cv::bitwise_not(out3, out3);
 	
-	
-	cv::imshow("out1", out1);
-	cv::imshow("out2", out2);
-	
-
+	cv::imshow("Canny 150-255-3", out1);
+	cv::imshow("Canny 170-250-3", out2);
+	cv::imshow("Canny 100-200-3", out3);
 }
+
+

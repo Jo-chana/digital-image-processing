@@ -283,6 +283,8 @@ BEGIN
                 MENUITEM "9 * 9",                       ID_LOG_9
                 MENUITEM "11 * 11",                     ID_LOG_11
                 MENUITEM "15 * 15",                     ID_LOG_15
+                MENUITEM "17 * 17",                     ID_LOG_17
+                MENUITEM "19 * 19",                     ID_LOG_19
                 MENUITEM "Multiple(3/5/7)",             ID_LOG_MULTIPLE
             END
             MENUITEM "Canny",                       ID_EDGEDETECTION_CANNY

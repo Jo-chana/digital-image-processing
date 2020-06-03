@@ -116,13 +116,15 @@
 #define ID_LOG_15                       32878
 #define ID_LOG_MULTIPLE                 32879
 #define ID_EDGEDETECTION_CANNY          32880
+#define ID_LOG_17                       32881
+#define ID_LOG_19                       32882
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        311
-#define _APS_NEXT_COMMAND_VALUE         32881
+#define _APS_NEXT_COMMAND_VALUE         32883
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           310
 #endif

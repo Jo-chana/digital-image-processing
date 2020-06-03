@@ -106,7 +106,7 @@ public:
 	afx_msg void OnEdgedetectionLog();
 	afx_msg void OnLog3();
 	afx_msg void OnLog5();
-	afx_msg void LoG(int,float**);
+	afx_msg void LoG(int,float**,double);
 	afx_msg void EdgeOperator();
 	afx_msg void Mask();
 	afx_msg void OnLog7();
@@ -115,6 +115,8 @@ public:
 	afx_msg void OnLog15();
 	afx_msg void OnLogMultiple();
 	afx_msg void OnEdgedetectionCanny();
+	afx_msg void OnLog17();
+	afx_msg void OnLog19();
 };
 
 #ifndef _DEBUG  // debug version in MFCApplication1View.cpp
